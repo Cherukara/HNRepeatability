@@ -1,60 +1,40 @@
-% MTC_QSM_PIPELINE.m - A QSM processing pipeline for all applications
-%
-% This script is based on my previous "MTC_xx_PIPELINE.m" scripts, but designed
-% to be unified across all applications, and take a properly labelled and
-% categorized BIDS dataset
-%
-% It is designed to run for one data set at a time, rather than to loop across
-% many.
+% QSM_PIPELINE.m reconstructs QSMs from BIDS-formatted NIFTI data
 %
 %
 %       Copyright (C) University College London, 2024
 %
 %
 % Created by MT Cherukara, May 2024
-%
-% CHANGELOG:
-%
-% 2024-06-10 (MTC). Changed the way the masking is implemented so that processes
-%       a series of non-exclusive masking steps (brain mask, noise-based, MFG,
-%       and connected components) and then logically ANDs the mask
-%
-% 2024-10-08 (MTC). Refactored a little bit so that everything is in the correct
-%       units throughout.
-%
-% 2024-10-24 (MTC). Added functionality to calculate the brain mask (using BET)
-%       within this script, rather than relying on an external BET mask.
-%
-% 2024-10-30 (MTC). Added a bit more versatility to the SWITCH-CASE sections
 
 clearvars;
 
-% mtc_setup;
+% Add toolboxes to path - replace these with your own path
+addpath(genpath('/home/cherukara/Documents/Coding/Toolboxes/MEDI_toolbox/'));
+addpath(genpath('/home/cherukara/Documents/Coding/Toolboxes/STISuite_V3.0/'));
+addpath(genpath('/home/cherukara/Documents/Coding/Toolboxes/FANSI-toolbox/'));
+addpath(genpath('/home/cherukara/Documents/Coding/Toolboxes/chi-separation/'));
+
+% Utilities functions contained within this repository
+addpath(fullfile('.','utils'));
+
 
 %% Select the Data Set
 
 % Data directory
-dir_data = '/media/cherukara/DATA/HERD_Study_BIDS/';                 % HERD Study
-% dir_data = '/media/cherukara/DATA/HN_Repeatability_BIDS/';      % HN Repeatability Study
-% dir_data = '/media/cherukara/DATA/DECOMPOSE/';
-% dir_data = 'D:\Matthew\7_Academia\Data\Perspectum_SS\';  % Perspectum Study, COMPUTWO
-% dir_data = '/media/cherukara/DATA/Perspectum_SS_BIDS/';         % Perspectum Study
-% dir_data = '/media/cherukara/DATA/SourceSeparation_Study_BIDS/';    % Source-Sep Study
+dir_data = '/media/cherukara/DATA/HN_Repeatability_BIDS/';      % HN Repeatability Study
 
-% Subject number
-for sub = 4
-
-% Session number - set this to 0 if there is no "session" level in the BIDS
-% hierarchy
-for ses = 1
-
-% Do we have the echoes as separate niftis (as per BIDS format)
-is_echoes = 1;
 
 % Key Parameters (change these by hand if necessary)
 Params.Orientation = [0, 0, 1];
 Params.Vsize = 22;      % V-SHARP kernel size
 Params.Alpha = 0.06;        % IterTik regularization parameter
+
+% Hard-coded parameters (eventually, these should be read from a JSON file in
+% the BIDS directory)
+Params.B0 = 3;
+Params.CF = 123.138;
+Params.NEchoes = 4;
+Params.TEs = (1:Params.NEchoes).*4.61e-3;
 
 
 %% Select Processing Options
@@ -63,17 +43,16 @@ Params.Alpha = 0.06;        % IterTik regularization parameter
 method_fitting = 'load';
 method_unwrap = 'SEGUE';
 method_bgfr = 'PDF';
-method_dipole = 'autoNDI';
+method_dipole = 'iterTik';
 
 % Optional Processing Steps
 is_MPPCA = 1;
-is_MSMV = 0;
 
 % Masking steps
-is_mask_brain = 0;
 is_mask_noise = 1;
 is_mask_mfg = 0;
-is_mask_conn = 1;
+is_mask_fill = 1;
+is_mask_conn = 0;
 is_mask_erode = 1;
 
 % Choose which outputs to save
@@ -81,10 +60,18 @@ save_mask = 1;
 save_unwrap = 1;
 save_localfield = 1;
 
+
+%% Loop Over Subjects and Sessions
+
+% Subject number
+for sub = 2:10
+
+% Session number - set this to 0 if there is no "session" level in the BIDS
+% hierarchy
+for ses = 1:6
+
 % Start the timer
 tStart = tic;
-
-
 
 %% Define Scan Name
 
@@ -95,17 +82,10 @@ else
     subname = strcat('sub-',num2str(sub));
 end
 
-% Set the folders and define SCANNAME
-if ses == 0
-    dir_raw = strcat(dir_data,'rawdata/',subname,'/anat/');
-    dir_qsm = strcat(dir_data,'derivatives/qsm/',subname,'/qsm/');
-    scanname = subname;
-else
-    sesname = strcat('ses-0',num2str(ses));
-    dir_raw = strcat(dir_data,'rawdata/',subname,'/',sesname,'/anat/');
-    dir_qsm = strcat(dir_data,'derivatives/qsm/',subname,'/',sesname,'/qsm/');
-    scanname = strcat(subname,'_',sesname);
-end
+sesname = strcat('ses-0',num2str(ses));
+dir_raw = strcat(dir_data,'rawdata/',subname,'/',sesname,'/anat/');
+dir_qsm = strcat(dir_data,'derivatives/qsm/',subname,'/',sesname,'/qsm/');
+scanname = strcat(subname,'_',sesname);
 
 % Define method names
 if strcmp(method_unwrap,'load')
@@ -115,93 +95,50 @@ else
 end
 
 if strcmp(method_bgfr,'load')
-    method_bgfr_name = 'VSHARP';
+    method_bgfr_name = 'PDF';
 else
     method_bgfr_name = method_bgfr;
 end
 
-if is_MSMV == 1
-    method_bgfr_name = strcat(method_bgfr_name,'mSMV');
-end
-
-% if is_mask_brain == 1
-%     method_unwrap_name = strcat(method_unwrap_name,'brain');
-% end
-
-
-%% Read basic information
-% Attempt to load a JSON file from the rawdata directory and read from it some
-% key information, if this doesn't work, we'll just assume some default values
-
-try 
-    if is_echoes == 1
-        txt_json = fileread(strcat(dir_raw,scanname,'_part-mag_echo-1_GRE.json'));
-    else
-        txt_json = fileread(strcat(dir_raw,scanname,'_part-mag_GRE.json'));
-    end
-    data_json = jsondecode(txt_json);
-
-    
-catch
-    disp('Loading JSON did not work');
-    data_json = struct([]);
-end
-
-% Read some basic information from the JSON file
-Params = mtc_parse_json(data_json,Params);
-
-
 % Read in information from the NIFTI
-if is_echoes == 1
-    inf_mag = niftiinfo(strcat(dir_raw,scanname,'_part-mag_echo-1_GRE'));
-else
-    inf_mag = niftiinfo(strcat(dir_raw,scanname,'_part-mag_GRE'));
-end
-
+inf_mag = niftiinfo(strcat(dir_raw,scanname,'_part-mag_echo-1_GRE'));
 Params.Resolution = inf_mag.PixelDimensions(1:3);
 Params.MatrixSize = inf_mag.ImageSize(1:3);
-Params.NEchoes = 5;
 
 
 %% Load the Data
 
 
-if is_echoes == 1
+% Pre-allocate MAG and PHA arrays
+arr_mag = zeros([Params.MatrixSize,Params.NEchoes]);
+arr_pha = zeros([Params.MatrixSize,Params.NEchoes]);
 
-    % Pre-allocate MAG and PHA arrays
-    arr_mag = zeros([Params.MatrixSize,Params.NEchoes]);
-    arr_pha = zeros([Params.MatrixSize,Params.NEchoes]);
+% Loop through and load magnitude and phase
+for ee = 1:Params.NEchoes
 
-    % Loop through and load magnitude and phase
-    for ee = 1:Params.NEchoes
-    
-        % Read in Echo times
-        txt_json = fileread(strcat(dir_raw,scanname,'_part-mag_echo-',num2str(ee),'_GRE.json'));
-        data_json = jsondecode(txt_json);
-        Params.TEs(ee) = data_json.EchoTime;
+    % Do we want to use MP-PCA denoising?
+    if is_MPPCA
+        try 
+            % Load already-denoised Mag and Phase data, if it exists
+            arr_mag(:,:,:,ee) = double(niftiread(strcat(dir_raw,scanname,'_part-mag_echo-',num2str(ee),'_denoised-CV_GRE')));
+            arr_pha(:,:,:,ee) = double(niftiread(strcat(dir_raw,scanname,'_part-phase_echo-',num2str(ee),'_denoised-CV_GRE')));
 
+            % Don't do the denoising again later
+            is_MPPCA = 0;
+        catch
+            % Load noisy Mag and Phase data
+            arr_mag(:,:,:,ee) = double(niftiread(strcat(dir_raw,scanname,'_part-mag_echo-',num2str(ee),'_GRE')));
+            arr_pha(:,:,:,ee) = double(niftiread(strcat(dir_raw,scanname,'_part-phase_echo-',num2str(ee),'_GRE')));
+        end
 
-    
+    else
+
         % Load magnitude and phase
         arr_mag(:,:,:,ee) = double(niftiread(strcat(dir_raw,scanname,'_part-mag_echo-',num2str(ee),'_GRE')));
         arr_pha(:,:,:,ee) = double(niftiread(strcat(dir_raw,scanname,'_part-phase_echo-',num2str(ee),'_GRE')));
-    
     end
 
-else
-
-    % Load the data
-    arr_mag = double(niftiread(strcat(dir_raw,scanname,'_part-mag_GRE')));
-    arr_pha = double(niftiread(strcat(dir_raw,scanname,'_part-phase_GRE')));
-
-    % Number of echo times
-    Params.NEchoes = size(arr_mag,4);
-
 end
-
-% Manually specify the echo times
-%       Eventually, this should be read in from a .json in the BIDS folder
-Params.TEs = (1:Params.NEchoes).*4.92e-3;
 
 % Remove NaNs
 arr_mag(isnan(arr_mag)) = 0;
@@ -211,11 +148,7 @@ arr_pha(isnan(arr_pha)) = 0;
 arr_pha = arr_pha - min(arr_pha(:));
 arr_pha = 2*pi*arr_pha./max(arr_pha(:));
 
-% Calculate delta TE and the Phase scaling
-if ~isfield(Params,'CF')
-    Params.CF = 123.239;        % Carrier Frequency (in MHz)
-end
-
+% Calculate echo spacing and scaling parameters
 Params.dTE = Params.TEs(2) - Params.TEs(1);
 Params.rad2Hz = 2*pi*Params.dTE;
 Params.rad2ppm = 2*pi.*Params.TEs(1).*Params.CF;
@@ -235,37 +168,28 @@ switch lower(method_fitting)
 
         % MP-PCA denoising
         if is_MPPCA == 1
-            % See if denoising has already been done, if so, load that data
-            try
-                arr_mag = niftiread(strcat(dir_raw,scanname,'_part-mag_denoised-CV_GRE'));
-                arr_pha = niftiread(strcat(dir_raw,scanname,'_part-phase_denoised-CV_GRE'));
+         
+            fprintf('\tRunning MP-PCA denoising... \n');
+            arr_comp = denoiseCV(arr_comp,[2,2,2]);
 
-                arr_comp = arr_mag.*exp(-1i*arr_pha);
+            % Save out the denoised data
+            arr_mag = abs(arr_comp);
+            arr_pha = angle(arr_comp);
 
-            % Otherwise, calculate it here and save it!
-            catch
+            % Update info struct so that it saves better
+            inf_mag.ImageSize = size(arr_mag);
+            inf_mag.PixelDimensions = [Params.Resolution, 1];
+            inf_mag.Datatype = 'double';
+            inf_mag.BitsPerPixel = 64;
 
-                fprintf('\tRunning MP-PCA denoising... \n');
-                arr_comp = denoiseCV(arr_comp,[2,2,2]);
-    
-                % Save out the denoised data
-                arr_mag = abs(arr_comp);
-                arr_pha = angle(arr_comp);
-    
-                % Update info struct so that it saves better
-                inf_mag.ImageSize = size(arr_mag);
-                inf_mag.PixelDimensions = [Params.Resolution, 1];
-                inf_mag.Datatype = 'double';
-                inf_mag.BitsPerPixel = 64;
-    
-                % Save denoised multi-echo magnitude and phase
-                niftiwrite(arr_mag, strcat(dir_raw,scanname,'_part-mag_denoised-CV_GRE'), inf_mag);
-                niftiwrite(arr_pha, strcat(dir_raw,scanname,'_part-phase_denoised-CV_GRE'), inf_mag);
-            end
+            % Save denoised multi-echo magnitude and phase
+            niftiwrite(arr_mag, strcat(dir_raw,scanname,'_part-mag_denoised-CV_GRE'), inf_mag);
+            niftiwrite(arr_pha, strcat(dir_raw,scanname,'_part-phase_denoised-CV_GRE'), inf_mag);
+
         end
 
         % Non-linear fitting using MEDI toolbox function
-        [arr_fieldfit, arr_noise, ~, arr_phizero] = Fit_ppm_complex_TE(arr_comp,Params.TEs);
+        [arr_fieldfit, arr_noise, ~, ~] = Fit_ppm_complex_TE(arr_comp,Params.TEs);
 
         % Absolutize the noise
         arr_noise = abs(arr_noise);
@@ -317,37 +241,6 @@ arr_mask = ones(size(arr_noise));
 % Mask description string
 str_mask = '_desc-';
 
-% Brain masking
-if is_mask_brain == 1
-
-    try
-        % Try to load a brain mask
-        arr_tempmask = niftiread(strcat(dir_raw,scanname,'_desc-brain_mask'));
-
-    catch
-        % If not, calculate it manually by running BET
-        fprintf('\tCalculating BET mask... \n');
-        arr_tempmask = BET(squeeze(arr_mag(:,:,:,1)),Params.MatrixSize,Params.Resolution);
-        
-        % Save out the newly discovered BET mask
-        inf_mask = inf_mag;
-        inf_mask.ImageSize = size(arr_mask);
-        inf_mask.PixelDimensions = Params.Resolution;
-        inf_mask.Datatype = 'int16';
-        inf_mask.BitsPerPixel = 16;
-        niftiwrite( int16(arr_tempmask), strcat(dir_raw,scanname,'_desc-brain_mask'), inf_mask);
-
-    end
-
-
-    % Apply the brain mask to the main mask
-    arr_mask = arr_mask .* double(arr_tempmask);
-
-    % Update description string
-    str_mask = strcat(str_mask,'b');
-
-end 
-
 % Noise-based masking
 if is_mask_noise == 1
 
@@ -378,6 +271,18 @@ if is_mask_mfg == 1
     str_mask = strcat(str_mask,'g');
 
 end
+
+% Fill holes in the mask
+if is_mask_fill == 1
+
+    % Imfill the mask
+    arr_mask = imfill(arr_mask,'holes');
+
+    % Update description string
+    str_mask = strcat(str_mask,'f');
+
+end
+
 
 % Mask out unconnected components of the original mask
 if is_mask_conn == 1
@@ -427,16 +332,12 @@ tLocal = tic;
 
 switch lower(method_unwrap)
 
-    % Laplacian unwrapping using AK's function which calls the MEDI toolbox
+    % Laplacian unwrapping using a MEDI toolbox function
     case {'laplace','laplacian','lpu'}
-
-        Params.MatrixSize = [512 512 512];
-        arr_field = ak_Laplacian_MEDI(arr_fieldfit, Params);
-        Params.MatrixSize = size(arr_fieldfit);
-
-
+        arr_field = unwrapLaplacian(arr_fieldfit, Params.MatrixSize, Params.Resolution);
+        
     % SEGUE unwrapping using AK's function
-    case 'segue'
+    case {'segue','exact'}
         SParams.Phase = arr_fieldfit;
         SParams.Mask = double(arr_mask);
         arr_field = Segue(SParams);
@@ -467,7 +368,7 @@ if save_unwrap == 1
     % Save
     niftiwrite(double(arr_field), ...
                strcat(dir_qsm,scanname,'_part-phase_unwrapped-',method_unwrap,...
-               '_field'), inf_unwrap);
+               '_field'), inf_unwrap, 'Compressed',true);
 end
 
 tPart = toc(tLocal);
@@ -483,7 +384,6 @@ switch lower(method_bgfr)
 
     case 'pdf'
 
-        % PDF takes arr_field in RADIANS and returns a arr_fieldloc in RADIANS
 
         % Perform PDF background field removal using MEDI function
         arr_fieldloc = PDF(arr_field, arr_noise, arr_mask, ...
@@ -492,8 +392,14 @@ switch lower(method_bgfr)
         % Apply the mask to the local field
         arr_fieldloc = arr_fieldloc .* arr_mask;
 
-        % SMV Prefilter on
-        Params.SMVPrefilter = 1;
+
+    case 'lbv'
+
+        % Perform LBV background field removal using MEDI function
+        arr_fieldloc = LBV(arr_field, arr_mask, Params.MatrixSize, Params.Resolution);
+
+        % Apply the mask to the local field
+        arr_fieldloc = arr_fieldloc .* arr_mask;
 
     case {'vsharp','v-sharp'}
 
@@ -504,8 +410,6 @@ switch lower(method_bgfr)
                                    'voxelsize',Params.Resolution,...
                                    'smvsize',Params.Vsize);
 
-        % SMV Prefilter off
-        Params.SMVPrefilter = 0;
 
         % Save a newly eroded V-SHARP mask
         if save_mask == 1
@@ -517,45 +421,12 @@ switch lower(method_bgfr)
             niftiwrite( int16(arr_mask), strcat(dir_qsm,scanname,str_mask,'VS_mask'), inf_mask);
         end
 
-
-    case {'iharp','iharperella','harperella','harp'}
-
-        % iHARP takes input field in RADIANS and returns local field in RADIANS
-
-        % Calculate IHARPERELLA (using STI Suite)
-        arr_fieldloc = iHARPERELLA(arr_field, arr_mask, 'voxelsize', Params.Resolution);
-
-        % SMV Prefilter on
-        Params.SMVPrefilter = 1;
-
-    case 'nlpdf'
-
-        % nlPDF takes input field in RADIANS and returns local field in RADIANS
-
-        % Create a dipole kernel
-        PParams.K = dipole_kernel_fansi(Params.MatrixSize, Params.Resolution, 1);
-
-        % Input fieldmap in RADIANS
-        PParams.input = arr_field;
-
-        % Other inputs
-        PParams.mask = arr_mask;
-        PParams.weight = arr_mask.*max(arr_mag,[],4);
-        PParams.spatial_res = Params.Resolution;
-
-        % Calculate non-linear PDF
-        pdf_out = npdfCG(PParams);
-
-        % Store output
-        arr_fieldloc = double(pdf_out.local).*arr_mask;
-
     case 'tfi'
 
         % If we are going to use TFI for the dipole inversion, then we shouldn't
         % do anything at this stage
         arr_fieldloc = arr_field;
         save_localfield = 0;
-        is_MSMV = 0;
         method_dipole = 'TFI';
 
     case 'load'
@@ -563,18 +434,13 @@ switch lower(method_bgfr)
         % Don't save it again
         save_localfield = 0;
 
-        % Load previously calculated V-SHARP data
+        % Load previously calculated local field data
         arr_fieldloc = niftiread(strcat(dir_qsm,scanname,...
                               '_unwrapped-',method_unwrap_name,...
                               '_bfr-',method_bgfr_name,'_localfield'));
 
 end
 
-% mSMV filtering
-if is_MSMV == 1
-    arr_fieldloc = msmv(arr_fieldloc, arr_mask, arr_R2s, Params.Resolution, 5, 5, 10, ...
-                     Params.B0, Params.SMVPrefilter);
-end
 
 % Save the local field
 if save_localfield == 1
@@ -589,8 +455,9 @@ if save_localfield == 1
     % Save
     niftiwrite(arr_fieldloc, strcat(dir_qsm,scanname,...
                '_unwrapped-',method_unwrap_name,...
+               '_mask-',str_mask,...
                '_bfr-',method_bgfr_name,'_localfield'),...
-               inf_local);
+               inf_local, 'Compressed',true);
 
 end
 
@@ -663,18 +530,6 @@ switch lower(method_dipole)
          struct_fansi = nlTV(FParams);
          arr_susc = struct_fansi.x.*arr_mask;
 
-    case {'whfansi','wh-fansi','wh-nltv','wh-nl-tv'}
-
-        % Fansi Options
-        FParams.alpha1 = 2e-4;
-        FParams.beta = 1e4;
-        FParams.mu1 = 100.*FParams.alpha1;
-        FParams.mu2 = 1.0;
-
-        % Run FANSI
-        struct_fansi = WH_nlTV(FParams);
-        arr_susc = struct_fansi.x;
-
     case {'starqsm','star-qsm','qsm-star','qsmstar'}
 
         % StarQSM takes an input fieldmap in RADIANS and returns a
@@ -702,22 +557,7 @@ switch lower(method_dipole)
 
         % Rescale into PPM from PPB
         arr_susc = arr_susc./1000;
-
-    case {'l1qsm','l1','wl1tv'}
-
-        % Fansi Options
-        FParams.alpha1 = 1e-3;
-        FParams.lambda = 10;
-        FParams.mu1 = 125.*FParams.alpha1;
-        FParams.mu2 = 1.0;
-
-        % FANSI inputs
-        FParams.weight = FParams.lambda.*FParams.weight;
-
-        % Run FANSI
-        struct_fansi = wL1TV(FParams);
-        arr_susc = struct_fansi.x;
-
+  
     case {'ndi','autondi'}
 
         % autoNDI definitely takes input fieldmap in RADIANS and returns a
@@ -817,8 +657,10 @@ inf_susc.BitsPerPixel = 64;
 % Save the susceptibility map
 niftiwrite(double(arr_susc), strcat(dir_qsm,scanname,...
            '_unwrapped-',method_unwrap_name,...
+           '_mask-',str_mask,...
            '_bfr-',method_bgfr_name,...
-           '_susc-',method_dipole,'_Chimap'), inf_susc);
+           '_susc-',method_dipole,'_Chimap'), inf_susc,...
+           'Compressed',true);
 
 % Timings
 fprintf('\tCompleted Dipole Inversion \n');
