@@ -11,11 +11,11 @@ clearvars;
 % Add toolboxes to path - replace these with your own path
 addpath(genpath('/home/cherukara/Documents/Coding/Toolboxes/MEDI_toolbox/'));
 addpath(genpath('/home/cherukara/Documents/Coding/Toolboxes/STISuite_V3.0/'));
-addpath(genpath('/home/cherukara/Documents/Coding/Toolboxes/FANSI-toolbox/'));
-addpath(genpath('/home/cherukara/Documents/Coding/Toolboxes/chi-separation/'));
 
 % Utilities functions contained within this repository
 addpath(fullfile('.','utils'));
+addpath(genpath(fullfile('.','FANSI-toolbox')));
+addpath(genpath(fullfile('.','chi-separation')));
 
 
 %% Select the Data Set
@@ -64,7 +64,7 @@ save_localfield = 1;
 %% Loop Over Subjects and Sessions
 
 % Subject number
-for sub = 2:10
+for sub = 1:10
 
 % Session number - set this to 0 if there is no "session" level in the BIDS
 % hierarchy
