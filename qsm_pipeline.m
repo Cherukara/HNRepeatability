@@ -42,7 +42,7 @@ Params.TEs = (1:Params.NEchoes).*4.61e-3;
 % Choose algorithm for each step
 method_fitting = 'load';
 method_unwrap = 'SEGUE';
-method_bgfr = 'LBV';
+method_bgfr = 'VSHARP';
 method_dipole = 'iterTik';
 
 % Optional Processing Steps
@@ -53,7 +53,7 @@ is_mask_noise = 1;
 is_mask_mfg = 0;
 is_mask_fill = 1;
 is_mask_conn = 0;
-is_mask_erode = 1;
+is_mask_erode = 0;
 
 % Choose which outputs to save
 save_mask = 1;
@@ -239,7 +239,7 @@ end
 arr_mask = ones(size(arr_noise));
 
 % Mask description string
-str_mask = '_desc-';
+str_mask = '';
 
 % Noise-based masking
 if is_mask_noise == 1
@@ -321,7 +321,7 @@ if save_mask == 1
     inf_mask.PixelDimensions = Params.Resolution;
     inf_mask.Datatype = 'int16';
     inf_mask.BitsPerPixel = 16;
-    niftiwrite( int16(arr_mask), strcat(dir_qsm,scanname,str_mask,'_mask'), inf_mask);
+    niftiwrite( int16(arr_mask), strcat(dir_qsm,scanname,'_desc-',str_mask,'_mask'), inf_mask);
 end
 
 
