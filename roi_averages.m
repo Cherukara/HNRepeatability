@@ -1,15 +1,21 @@
-% mtc_roi_averages.m
+% ROI_AVERAGES.m loads processed QSM data and stores averages from ROIs
 %
-% Pull out and store the average values in several ROIs from some Head and Neck
-% data
+%
+%       Copyright (C) University College London, 2024
+%
+%
+% Created by MT Cherukara, May 2024
 
 clearvars;
 close all;
 
 %% Set up Data Set
 
-% Data directory
-dir_data = '/media/cherukara/DATA/HN_Repeatability_BIDS/';      % HN Repeatability Study
+% QSM data directory
+dir_data = '/media/cherukara/DATA/HN_Repeatability_BIDS/';
+
+% Output data directory
+dir_save = '/home/cherukara/Documents/Coding/MTC_QSM/Analysis/HNRepeatability_Data/';
 
 % Subject numbers
 subs = 1:10;
@@ -25,14 +31,12 @@ names_roi = {'Lymph Node','Lymph Node','Lymph Node','Lymph Node',...
 
 % Method name
 str_unwr = 'SEGUE';
-str_bkgr = 'PDF';
-str_susc = 'StarQSM';
-
-% Should we reference?
-is_reference = 1;
+str_mask = 'nfv';
+str_bkgr = 'VSHARP';
+str_susc = 'iterTik';
 
 % Put the method name together
-str_meth = strcat('_unwrapped-',str_unwr,'_bfr-',str_bkgr,'_susc-',str_susc,'_');
+str_meth = strcat('_unwrapped-',str_unwr,'_mask-',str_mask,'_bfr-',str_bkgr,'_susc-',str_susc,'_');
 
 % Numbers
 n_rois = length(names_roi);
@@ -71,19 +75,14 @@ for ss = subs
         arr_susc = niftiread(strcat(dir_qsm,scanname,str_meth,'Chimap'));
         vec_susc = arr_susc(:);
 
-        % Referencing?
-        if is_reference == 1
+        % Load in the reference region mask
+        arr_refmask = double(niftiread(strcat(dir_raw,scanname,'_desc-brain_mask')));
 
-            % Load in the reference region mask
-            arr_refmask = double(niftiread(strcat(dir_raw,scanname,'_desc-brain_mask')));
+        % Calculate reference value
+        s_refmean = mean(arr_susc.*arr_refmask,'all','omitnan');
 
-            % Calculate reference value
-            s_refmean = mean(arr_susc.*arr_refmask,'all','omitnan');
-
-            % Subtract reference value
-            arr_susc = arr_susc - s_refmean;
-
-        end % if is_reference == 1
+        % Subtract reference value
+        arr_susc = arr_susc - s_refmean;
 
         % Loop over ROIs and store the averages
         for rr = 1:n_rois
@@ -105,6 +104,5 @@ end % for ss = subs
 
 
 %% Save the Data
-dir_save = '/home/cherukara/Documents/Coding/MTC_QSM/Analysis/Analysis_Data/';
 save(strcat(dir_save,'Repeatability',str_meth,'ref_data.mat'),...
     'arr_roi_av','arr_roi_sd','str_meth','subs','sessions','names_roi');

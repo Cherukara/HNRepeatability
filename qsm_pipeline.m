@@ -42,8 +42,8 @@ Params.TEs = (1:Params.NEchoes).*4.61e-3;
 % Choose algorithm for each step
 method_fitting = 'load';
 method_unwrap = 'SEGUE';
-method_bgfr = 'VSHARP';
-method_dipole = 'iterTik';
+method_bgfr = 'PDF';
+method_dipole = 'autoNDI';
 
 % Optional Processing Steps
 is_MPPCA = 1;
@@ -56,9 +56,9 @@ is_mask_conn = 0;
 is_mask_erode = 0;
 
 % Choose which outputs to save
-save_mask = 1;
-save_unwrap = 1;
-save_localfield = 1;
+save_mask = 0;
+save_unwrap = 0;
+save_localfield = 0;
 
 
 %% Loop Over Subjects and Sessions
@@ -300,6 +300,16 @@ if is_mask_conn == 1
 
 end
 
+
+if any(strcmp(method_bgfr_name,{'vsharp','v-sharp'}))
+
+    % Update the mask description string to incorporate v-sharp
+    str_mask = strcat(str_mask,'v');
+
+    % Don't erode
+    is_mask_erode = 0;
+end
+
 if is_mask_erode == 1
 
     % Erode the mask using a radius 1 disk
@@ -314,6 +324,7 @@ if is_mask_erode == 1
 end
 
 
+
 % Save the mask
 if save_mask == 1
     inf_mask = inf_mag;
@@ -321,8 +332,13 @@ if save_mask == 1
     inf_mask.PixelDimensions = Params.Resolution;
     inf_mask.Datatype = 'int16';
     inf_mask.BitsPerPixel = 16;
-    niftiwrite( int16(arr_mask), strcat(dir_qsm,scanname,'_desc-',str_mask,'_mask'), inf_mask);
+    niftiwrite( int16(arr_mask), strcat(dir_qsm,scanname,'_desc-',str_mask,'_mask'),...
+                inf_mask, 'Compressed',true);
 end
+
+% Load the VS mask
+arr_mask = double(niftiread(strcat(dir_qsm,scanname,'_desc-nfv_mask')));
+str_mask = 'nfv';
 
 
 %% 3. Phase Unwrapping
@@ -418,7 +434,8 @@ switch lower(method_bgfr)
             inf_mask.PixelDimensions = Params.Resolution;
             inf_mask.Datatype = 'int16';
             inf_mask.BitsPerPixel = 16;
-            niftiwrite( int16(arr_mask), strcat(dir_qsm,scanname,str_mask,'VS_mask'), inf_mask);
+            niftiwrite( int16(arr_mask), strcat(dir_qsm,scanname,'_desc-',str_mask,'v_mask'),...
+                        inf_mask, 'Compressed',true);
         end
 
     case 'tfi'
