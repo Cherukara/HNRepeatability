@@ -10,10 +10,11 @@ dir_data = '/home/cherukara/Documents/Coding/MTC_QSM/Analysis/HNRepeatability_Da
 
 % Methods we are comparing
 meth_names = {'LBV','PDF','VSHARP'};
+% meth_names = {'LPU','SEGUE'};
 n_meth = length(meth_names);
 
 % Long ROI names
-names_roi = {'Thalamus','Caudate Nucleus','Putamen','Globus Pallidus','Whole Brain'};
+names_roi = {'Thalamus','Caudate Nucleus','Putamen','Globus Pallidus'};
 n_rois = length(names_roi);
 
 % Lengths
@@ -27,8 +28,9 @@ names_methnice = meth_names;
 % mean and standard deviation
 stat_rmse_roi = zeros(n_meth,n_rois,2);
 stat_xsim_roi = zeros(n_meth,n_rois,2);
-% gr_rmse_roi = zeros(n_meth,2);
-% gr_xsim_roi = zeros(n_meth,2);
+
+stat_rmse_all = zeros(n_meth,n_subs,n_reps-1,n_rois);
+stat_xsim_all = zeros(n_meth,n_subs,n_reps-1,n_rois);
 
 
 %% Loop through methods, load and fill in the table
@@ -38,17 +40,22 @@ for mm = 1:n_meth
     struct_m = load(strcat(dir_data,'Voxel_Repeatability_',meth_names{mm},'_data.mat'));
 
     % Fill in the mean for each one
-    stat_rmse_roi(mm,:,1) = mean(struct_m.res_rmse(:,2:n_reps,:),[1,2]);
-    stat_xsim_roi(mm,:,1) = mean(struct_m.res_xsim(:,2:n_reps,:),[1,2]);
+    stat_rmse_roi(mm,:,1) = mean(struct_m.res_rmse(:,2:n_reps,1:n_rois),[1,2]);
+    stat_xsim_roi(mm,:,1) = mean(struct_m.res_xsim(:,2:n_reps,1:n_rois),[1,2]);
 
     % Fill in the standard deviation for each one
-    stat_rmse_roi(mm,:,2) = std(struct_m.res_rmse(:,2:n_reps,:),[],[1,2]);
-    stat_xsim_roi(mm,:,2) = std(struct_m.res_xsim(:,2:n_reps,:),[],[1,2]);
+    stat_rmse_roi(mm,:,2) = std(struct_m.res_rmse(:,2:n_reps,1:n_rois),[],[1,2]);
+    stat_xsim_roi(mm,:,2) = std(struct_m.res_xsim(:,2:n_reps,1:n_rois),[],[1,2]);
+
+    % Put all the data in a big array so that we can do Repeated-Measures ANOVA
+    %       Dimensions: METHODS * SUBJECTS * REPEATS * ROIs
+    stat_rmse_all(mm,:,:,:) = struct_m.res_rmse(:,2:n_reps,1:n_rois);
+    stat_xsim_all(mm,:,:,:) = struct_m.res_xsim(:,2:n_reps,1:n_rois);
 
 end % for mm = 1:n_meth
 
 
-%% ANOVA - RMSE
+%% One-way ANOVA
 
 % Do one-way ANOVA
 res_anova = anova(stat_xsim_roi(:,:,1)');
@@ -76,6 +83,77 @@ else % if res_pval < 0.05
 
 end % if res_pval < 0.05 // else
 
+
+%% Repeated Measures ANOVA
+
+% We need a vector of "subject names" from A (1) to J (10) that repeats 5 times
+arr_sub = repelem([{'a'},{'b'},{'c'},{'d'},{'e'},{'f'},{'g'},{'h'},{'i'},{'j'}],n_reps-1)';
+
+% Pre-allocate an array for storing ROI p-Values
+res_ranova = zeros(n_rois,1);
+
+% Numbers for pairwise comparisons
+pairs_mult = nchoosek(1:n_meth,2);
+n_pairs = size(pairs_mult,1);
+
+% Pre-allocate a table for pairwise comparisons
+t_pairs = table('Size',[n_pairs,2+n_rois],...
+                'VariableTypes',[{'string','string'},repelem({'logical'},n_rois)],...
+                'VariableNames',[{'Method1','Method2'},names_roi]);
+
+t_pairs.Method1 = [names_methnice(pairs_mult(:,1))]';
+t_pairs.Method2 = [names_methnice(pairs_mult(:,2))]';
+
+% Loop over ROIs and do the ANOVA in each one
+for rr = 1:n_rois
+
+    % Pull out the current ROI
+    arr_stat_roi = stat_rmse_all(:,:,:,rr);
+
+    % Create table for this ROI
+    t_roi = cell2table(arr_sub,'VariableNames',{'sub'});
+
+    % Loop over methods and add columns
+    for mm = 1:n_meth
+
+        % Pull out the current method
+        arr_stat_meth = squeeze(arr_stat_roi(mm,:,:))';
+
+        % Add to the table
+        t_roi = addvars(t_roi,arr_stat_meth(:),'NewVariableNames',{sprintf('meas%d',mm)});
+
+    end % for mm = 1:n_meth
+
+    % Create measurements table
+    t_meas = table((1:n_meth)','VariableNames',{'Measurements'});
+
+    % Create Repeated Measures Model
+    rm = fitrm(t_roi,'meas1-meas3~sub','WithinDesign',t_meas);
+
+    % Now, do the repeated measures ANOVA
+    t_ranova = ranova(rm);
+
+    % We want the lower-bound p-Value from the Intercept:Measurements term,
+    % because this tells us whether the "Measurements" (methods) are
+    % significantly different
+    res_ranova(rr) = t_ranova.pValueLB(1);
+
+    % Pairwise comparison
+    t_mult = multcompare(rm,'Measurements');
+
+    % Loop through pairs and fill in the pairwise comparison table
+    for pp = 1:n_pairs
+
+        % Find the correct row
+        i_row = find(t_mult.Measurements_1 == pairs_mult(pp,1) & ...
+                     t_mult.Measurements_2 == pairs_mult(pp,2) );
+
+        % Insert p-value
+        t_pairs.(names_roi{rr})(pp) = t_mult.pValue(i_row) < 0.05;
+
+    end % for pp = 1:n_pairs
+
+end % for rr = 1:n_rois
 
 
 
@@ -124,7 +202,7 @@ xticklabels(names_roi);
 % end
 
 % Legend
-legend(names_methnice,'Location','NorthWest')
+legend(names_methnice,'Location','NorthEast')
 legend('boxoff');
 
 
