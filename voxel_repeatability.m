@@ -35,14 +35,15 @@ sessions = 1:6;
 % Method name
 str_unwr = 'SEGUE';
 str_mask = 'nfv';
-str_bkgr = 'LBV';
-str_susc = 'iterTik';
+str_bkgr = 'TFI';
+str_susc = 'TFI';
 
 % Put the method name together
-str_full = strcat('_unwrapped-',str_unwr,'_mask-',str_mask,'_bfr-',str_bkgr,'_susc-',str_susc,'_');
+% str_full = strcat('_unwrapped-',str_unwr,'_mask-',str_mask,'_bfr-',str_bkgr,'_susc-',str_susc,'_');
+str_full = strcat('_unwrapped-',str_unwr,'_bfr-',str_bkgr,'_susc-',str_susc,'_');
 
 % Registered method name
-str_meth = str_bkgr;
+str_meth = str_susc;
 
 % Long ROI names
 names_roi = {'Thalamus','Caudate Nucleus','Putamen','Globus Pallidus'};

@@ -9,12 +9,13 @@ close all;
 dir_data = '/home/cherukara/Documents/Coding/MTC_QSM/Analysis/HNRepeatability_Data/';
 
 % Methods we are comparing
+meth_names = {'iterTik','StarQSM','FANSI','autoNDI','TFI','QSMnet'};
 % meth_names = {'LBV','PDF','VSHARP'};
-meth_names = {'LPU','SEGUE'};
+% meth_names = {'LPU','SEGUE'};
 n_meth = length(meth_names);
 
 % Metric (choose 'XSIM' or 'NRMSE')
-name_metric = 'XSIM';
+name_metric = 'NRMSE';
 
 % Long ROI names
 names_roi = {'Thalamus','Caudate Nucleus','Putamen','Globus Pallidus'};
@@ -28,7 +29,7 @@ n_reps = 6;
 names_methnice = meth_names;
 
 % Do we want to plot horizontal lines indicating statistical significance?
-is_sigline = 0;
+is_sigline = 1;
 
 % Pre-allocate storage arrays, averaging over subjects and sessions, storing
 % mean and standard deviation
@@ -139,7 +140,7 @@ for rr = 1:n_rois
     t_meas = table((1:n_meth)','VariableNames',{'Measurements'});
 
     % Create Repeated Measures Model
-    rm = fitrm(t_roi,'meas1-meas2~sub','WithinDesign',t_meas);
+    rm = fitrm(t_roi,sprintf('meas1-meas%d~sub',n_meth),'WithinDesign',t_meas);
 
     % Now, do the repeated measures ANOVA
     t_ranova = ranova(rm);
@@ -175,7 +176,7 @@ end % for rr = 1:n_rois
 
 % Figure
 f1 = figure(1); clf;
-set(f1,'Position',[150,300,(200 + 100.*n_rois),550]);
+set(f1,'Position',[150,300,(200 + 30.*n_rois.*n_meth),550]);
 
 % Bar Chart
 br1 = bar(stat_av_roi(:,:,1)',1,'FaceColor','Flat');
@@ -196,7 +197,7 @@ br_e = stat_av_roi(:,:,2)';
 er1 = errorbar(xpos(:),br_c(:),br_e(:),'k','LineStyle','none','LineWidth',1);
 
 % Labels
-ylim([0,1.1]);
+% ylim([0,1.2]);
 ylabel(name_metric);
 xticks(1:n_rois);
 xticklabels(names_roi);
@@ -209,13 +210,16 @@ if is_sigline == 1
 
     % Loop over ROIs and pairs
     for rr = 1:n_rois
+        hgap = 0.02;
+
         for pp = 1:n_pairs
 
             % If this comparison is significant, plot it
             if mat_sigpair(rr,pp)
                 plot([xpos(rr,pairs_mult(pp,1)),xpos(rr,pairs_mult(pp,2))],...
-                    [hmax(rr)+0.02*pp,hmax(rr)+0.02*pp],...
+                    [hmax(rr)+hgap,hmax(rr)+hgap],...
                     'k-','LineWidth',1.25);
+                hgap = hgap + 0.02;
             end
 
         end
