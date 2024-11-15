@@ -9,9 +9,12 @@ close all;
 dir_data = '/home/cherukara/Documents/Coding/MTC_QSM/Analysis/HNRepeatability_Data/';
 
 % Methods we are comparing
-meth_names = {'LBV','PDF','VSHARP'};
-% meth_names = {'LPU','SEGUE'};
+% meth_names = {'LBV','PDF','VSHARP'};
+meth_names = {'LPU','SEGUE'};
 n_meth = length(meth_names);
+
+% Metric (choose 'XSIM' or 'NRMSE')
+name_metric = 'XSIM';
 
 % Long ROI names
 names_roi = {'Thalamus','Caudate Nucleus','Putamen','Globus Pallidus'};
@@ -24,13 +27,13 @@ n_reps = 6;
 % We might want to rename the methods
 names_methnice = meth_names;
 
+% Do we want to plot horizontal lines indicating statistical significance?
+is_sigline = 0;
+
 % Pre-allocate storage arrays, averaging over subjects and sessions, storing
 % mean and standard deviation
-stat_rmse_roi = zeros(n_meth,n_rois,2);
-stat_xsim_roi = zeros(n_meth,n_rois,2);
-
-stat_rmse_all = zeros(n_meth,n_subs,n_reps-1,n_rois);
-stat_xsim_all = zeros(n_meth,n_subs,n_reps-1,n_rois);
+stat_av_roi = zeros(n_meth,n_rois,2);
+stat_all_roi = zeros(n_meth,n_subs,n_reps-1,n_rois);
 
 
 %% Loop through methods, load and fill in the table
@@ -39,18 +42,23 @@ for mm = 1:n_meth
     % Load the Data
     struct_m = load(strcat(dir_data,'Voxel_Repeatability_',meth_names{mm},'_data.mat'));
 
+    % Pull out the chosen metric
+    switch lower(name_metric)
+        case 'xsim'
+            stat_metric = struct_m.res_xsim;
+        case {'nrmse','rmse'}
+            stat_metric = struct_m.res_rmse;
+    end
+
     % Fill in the mean for each one
-    stat_rmse_roi(mm,:,1) = mean(struct_m.res_rmse(:,2:n_reps,1:n_rois),[1,2]);
-    stat_xsim_roi(mm,:,1) = mean(struct_m.res_xsim(:,2:n_reps,1:n_rois),[1,2]);
+    stat_av_roi(mm,:,1) = mean(stat_metric(:,2:n_reps,1:n_rois),[1,2]);
 
     % Fill in the standard deviation for each one
-    stat_rmse_roi(mm,:,2) = std(struct_m.res_rmse(:,2:n_reps,1:n_rois),[],[1,2]);
-    stat_xsim_roi(mm,:,2) = std(struct_m.res_xsim(:,2:n_reps,1:n_rois),[],[1,2]);
-
+    stat_av_roi(mm,:,2) = std(struct_m.res_rmse(:,2:n_reps,1:n_rois),[],[1,2]);
+    
     % Put all the data in a big array so that we can do Repeated-Measures ANOVA
     %       Dimensions: METHODS * SUBJECTS * REPEATS * ROIs
-    stat_rmse_all(mm,:,:,:) = struct_m.res_rmse(:,2:n_reps,1:n_rois);
-    stat_xsim_all(mm,:,:,:) = struct_m.res_xsim(:,2:n_reps,1:n_rois);
+    stat_all_roi(mm,:,:,:) = struct_m.res_rmse(:,2:n_reps,1:n_rois);
 
 end % for mm = 1:n_meth
 
@@ -58,7 +66,7 @@ end % for mm = 1:n_meth
 %% One-way ANOVA
 
 % Do one-way ANOVA
-res_anova = anova(stat_xsim_roi(:,:,1)');
+res_anova = anova(stat_av_roi(:,:,1)');
 
 % Pull p-value
 res_pval = res_anova.stats.pValue(1);
@@ -79,7 +87,7 @@ if res_pval < 0.05
 
 
 else % if res_pval < 0.05
-    disp('No significant differences (RMSE)');
+    fprintf('No significant differences (%s)\n',name_metric);
 
 end % if res_pval < 0.05 // else
 
@@ -104,11 +112,14 @@ t_pairs = table('Size',[n_pairs,2+n_rois],...
 t_pairs.Method1 = [names_methnice(pairs_mult(:,1))]';
 t_pairs.Method2 = [names_methnice(pairs_mult(:,2))]';
 
+% Pre-allocate a little matrix for flagging pairwise comparisons
+mat_sigpair = false(n_rois,n_pairs);
+
 % Loop over ROIs and do the ANOVA in each one
 for rr = 1:n_rois
 
     % Pull out the current ROI
-    arr_stat_roi = stat_rmse_all(:,:,:,rr);
+    arr_stat_roi = stat_all_roi(:,:,:,rr);
 
     % Create table for this ROI
     t_roi = cell2table(arr_sub,'VariableNames',{'sub'});
@@ -128,7 +139,7 @@ for rr = 1:n_rois
     t_meas = table((1:n_meth)','VariableNames',{'Measurements'});
 
     % Create Repeated Measures Model
-    rm = fitrm(t_roi,'meas1-meas3~sub','WithinDesign',t_meas);
+    rm = fitrm(t_roi,'meas1-meas2~sub','WithinDesign',t_meas);
 
     % Now, do the repeated measures ANOVA
     t_ranova = ranova(rm);
@@ -149,7 +160,10 @@ for rr = 1:n_rois
                      t_mult.Measurements_2 == pairs_mult(pp,2) );
 
         % Insert p-value
-        t_pairs.(names_roi{rr})(pp) = t_mult.pValue(i_row) < 0.05;
+        t_pairs.(names_roi{rr})(pp) = t_mult.pValue(i_row);
+
+        % Logical flag for significance bars
+        mat_sigpair(rr,pp) = t_mult.pValue(i_row) < 0.05;
 
     end % for pp = 1:n_pairs
 
@@ -157,14 +171,14 @@ end % for rr = 1:n_rois
 
 
 
-%% Bar Chart of RMSE
+%% Bar Chart of Results
 
 % Figure
 f1 = figure(1); clf;
 set(f1,'Position',[150,300,(200 + 100.*n_rois),550]);
 
 % Bar Chart
-br1 = bar(stat_rmse_roi(:,:,1)',1,'FaceColor','Flat');
+br1 = bar(stat_av_roi(:,:,1)',1,'FaceColor','Flat');
 box on; hold on;
 
 % Pre-allocate array of x positions for the ends of the boxes
@@ -175,84 +189,98 @@ for ee = 1:n_meth
 end
 
 % Pull out centre points and ends of the error bars
-br_c = stat_rmse_roi(:,:,1)';
-br_e = stat_rmse_roi(:,:,2)';
+br_c = stat_av_roi(:,:,1)';
+br_e = stat_av_roi(:,:,2)';
 
 % Plot the error bars
 er1 = errorbar(xpos(:),br_c(:),br_e(:),'k','LineStyle','none','LineWidth',1);
 
 % Labels
-ylim([0,1]);
-ylabel('NRMSE');
+ylim([0,1.1]);
+ylabel(name_metric);
 xticks(1:n_rois);
 xticklabels(names_roi);
-% 
-% % Significance bars - whole brain
-% for pp = 1:size(t_mult_w,1)
-%     plot([xpos(t_mult_w.Group1(pp),1),xpos(t_mult_w.Group2(pp),1)],...
-%          [110+(4*pp),110+(4*pp)],...
-%          'k-','LineWidth',1.25)
-% end
-% 
-% % Significance bars - rois
-% for pp = 1:size(t_mult_r,1)
-%     plot([xpos(t_mult_r.Group1(pp),2),xpos(t_mult_r.Group2(pp),2)],...
-%          [122+(4*pp),122+(4*pp)],...
-%          'k-','LineWidth',1.25)
-% end
+
+% Plot Significance bars
+if is_sigline == 1
+
+    % Find maximum height for each ROI
+    hmax = max(br_c+br_e,[],2);
+
+    % Loop over ROIs and pairs
+    for rr = 1:n_rois
+        for pp = 1:n_pairs
+
+            % If this comparison is significant, plot it
+            if mat_sigpair(rr,pp)
+                plot([xpos(rr,pairs_mult(pp,1)),xpos(rr,pairs_mult(pp,2))],...
+                    [hmax(rr)+0.02*pp,hmax(rr)+0.02*pp],...
+                    'k-','LineWidth',1.25);
+            end
+
+        end
+    end
+
+end
 
 % Legend
-legend(names_methnice,'Location','NorthEast')
+legend(names_methnice,'Location','best');
 legend('boxoff');
 
 
 %% Bar Chart of XSIM
-
-% Figure
-f2 = figure(2); clf;
-set(f2,'Position',[250,300,(200 + 100.*n_rois),550]);
-
-% Bar Chart
-br2 = bar(stat_xsim_roi(:,:,1)',1,'FaceColor','Flat');
-box on; hold on;
-
-% Pre-allocate array of x positions for the ends of the boxes
-xpos = zeros(n_rois,n_meth);
-
-for ee = 1:n_meth
-    xpos(:,ee) = br2(ee).XEndPoints;
-end
-
-% Pull out centre points and ends of the error bars
-br_c = stat_xsim_roi(:,:,1)';
-br_e = stat_xsim_roi(:,:,2)';
-
-% Plot the error bars
-er2 = errorbar(xpos(:),br_c(:),br_e(:),'k','LineStyle','none','LineWidth',1);
-
-% Labels
-ylim([0,1]);
-ylabel('XSIM');
-xticks(1:n_rois);
-xticklabels(names_roi);
-
-% % Significance bars - whole brain
-% for pp = 1:size(t_mult_w,1)
-%     plot([xpos(t_mult_w.Group1(pp),1),xpos(t_mult_w.Group2(pp),1)],...
-%          [110+(4*pp),110+(4*pp)],...
-%          'k-','LineWidth',1.25)
+% 
+% % Figure
+% f2 = figure(2); clf;
+% set(f2,'Position',[250,300,(200 + 100.*n_rois),550]);
+% 
+% % Bar Chart
+% br2 = bar(stat_xsim_roi(:,:,1)',1,'FaceColor','Flat');
+% box on; hold on;
+% 
+% % Pre-allocate array of x positions for the ends of the boxes
+% xpos = zeros(n_rois,n_meth);
+% 
+% for ee = 1:n_meth
+%     xpos(:,ee) = br2(ee).XEndPoints;
 % end
 % 
-% % Significance bars - rois
-% for pp = 1:size(t_mult_r,1)
-%     plot([xpos(t_mult_r.Group1(pp),2),xpos(t_mult_r.Group2(pp),2)],...
-%          [122+(4*pp),122+(4*pp)],...
-%          'k-','LineWidth',1.25)
+% % Pull out centre points and ends of the error bars
+% br_c = stat_xsim_roi(:,:,1)';
+% br_e = stat_xsim_roi(:,:,2)';
+% 
+% % Plot the error bars
+% er2 = errorbar(xpos(:),br_c(:),br_e(:),'k','LineStyle','none','LineWidth',1);
+% 
+% % Labels
+% ylim([0,1]);
+% ylabel('XSIM');
+% xticks(1:n_rois);
+% xticklabels(names_roi);
+% 
+% % Plot Significance bars
+% 
+% % Find maximum height for each ROI
+% hmax = max(br_c+br_e,[],2);
+% 
+% % Loop over ROIs and pairs
+% for rr = 1:n_rois
+%     for pp = 1:n_pairs
+% 
+%         % If this comparison is significant, plot it
+%         if mat_sigpair(rr,pp)
+%             plot([xpos(rr,pairs_mult(pp,1)),xpos(rr,pairs_mult(pp,2))],...
+%                  [hmax(rr)+0.02*pp,hmax(rr)+0.02*pp],...
+%                  'k-','LineWidth',1.25);
+%         end
+% 
+%     end
 % end
-
-% Legend
-legend(names_methnice,'Location','NorthWest')
-legend('boxoff');
-
+% 
+% 
+% % Legend
+% legend(names_methnice,'Location','NorthWest')
+% legend('boxoff');
+% 
 
 
