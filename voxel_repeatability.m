@@ -33,16 +33,16 @@ subs = 1:10;
 sessions = 1:6;
 
 % Method name
-str_unwr = 'LPU';
+str_unwr = 'SEGUE';
 str_mask = 'nfv';
-str_bkgr = 'PDF';
+str_bkgr = 'LBV';
 str_susc = 'iterTik';
 
 % Put the method name together
 str_full = strcat('_unwrapped-',str_unwr,'_mask-',str_mask,'_bfr-',str_bkgr,'_susc-',str_susc,'_');
 
 % Registered method name
-str_meth = 'LPU';
+str_meth = str_bkgr;
 
 % Long ROI names
 names_roi = {'Thalamus','Caudate Nucleus','Putamen','Globus Pallidus'};
@@ -87,6 +87,12 @@ for ss = subs
     % Reference to whole-brain average
     arr_orig = arr_orig - mean(vec_orig(vec_mask==1),'omitnan');
 
+    % Test GP value
+    vec_gp = arr_orig(arr_rois == 13);
+    if mean(vec_gp) < 0
+        disp(['Contrast inverted! (',subname,'_ses-01)']);
+    end
+
     for ww = sessions(2:end)
 
         % Session and scan name
@@ -102,6 +108,12 @@ for ss = subs
         % Reference
         arr_susc = arr_susc - mean(vec_susc(vec_mask==1),'omitnan');
 
+        % Test GP value
+        vec_gp = arr_susc(arr_rois == 13);
+        if mean(vec_gp) < 0
+            disp(['Contrast inverted! (',scanname,')']);
+        end
+
         % Loop over ROIs and calculate metrics for each one
         for rr = 1:n_rois
 
@@ -109,7 +121,7 @@ for ss = subs
             mask_roi = arr_rois == (rr + 9);
             
             % Calculate RMSE 
-            res_rmse(ss,ww,rr) = compute_rmse(vec_orig(mask_roi(:)),vec_susc(mask_roi(:)));
+            res_rmse(ss,ww,rr) = 0.01*compute_rmse(vec_orig(mask_roi(:)),vec_susc(mask_roi(:)));
 
             % Calculate XSIM
             res_xsim(ss,ww,rr) = compute_xsim(arr_orig,arr_susc,mask_roi);
@@ -117,7 +129,7 @@ for ss = subs
         end % for rr = 1:n_rois
 
         % Calculate RMSE and XSIM for the whole brain
-        res_rmse(ss,ww,end) = compute_rmse(vec_orig(vec_mask==1), vec_susc(vec_mask==1));
+        res_rmse(ss,ww,end) = 0.01*compute_rmse(vec_orig(vec_mask==1), vec_susc(vec_mask==1));
         res_xsim(ss,ww,end) = compute_xsim(arr_orig, arr_susc, arr_mask);
 
     end % for ww = sessions

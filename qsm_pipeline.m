@@ -42,8 +42,8 @@ Params.TEs = (1:Params.NEchoes).*4.61e-3;
 % Choose algorithm for each step
 method_fitting = 'load';
 method_unwrap = 'SEGUE';
-method_bgfr = 'PDF';
-method_dipole = 'autoNDI';
+method_bgfr = 'LBV';
+method_dipole = 'iterTik';
 
 % Optional Processing Steps
 is_MPPCA = 1;
@@ -57,18 +57,18 @@ is_mask_erode = 0;
 
 % Choose which outputs to save
 save_mask = 0;
-save_unwrap = 0;
-save_localfield = 0;
+save_unwrap = 1;
+save_localfield = 1;
 
 
 %% Loop Over Subjects and Sessions
 
 % Subject number
-for sub = 1:10
+for sub = 3
 
 % Session number - set this to 0 if there is no "session" level in the BIDS
 % hierarchy
-for ses = 1:6
+for ses = 6
 
 % Start the timer
 tStart = tic;

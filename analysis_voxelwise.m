@@ -9,7 +9,7 @@ close all;
 dir_data = '/home/cherukara/Documents/Coding/MTC_QSM/Analysis/HNRepeatability_Data/';
 
 % Methods we are comparing
-meth_names = {'LPU','SEGUE'};
+meth_names = {'LBV','PDF','VSHARP'};
 n_meth = length(meth_names);
 
 % Long ROI names
@@ -45,16 +45,38 @@ for mm = 1:n_meth
     stat_rmse_roi(mm,:,2) = std(struct_m.res_rmse(:,2:n_reps,:),[],[1,2]);
     stat_xsim_roi(mm,:,2) = std(struct_m.res_xsim(:,2:n_reps,:),[],[1,2]);
 
-    % % Fill in the mean and standard deviation for each one
-    % gr_rmse_roi(mm,1) = mean(res_roi_rmse(:,2:n_reps),'all');
-    % gr_rmse_roi(mm,2) = std(res_roi_rmse(:,2:n_reps),[],'all');
-    % 
-    % gr_xsim_roi(mm,1) = mean(res_roi_xsim(:,2:n_reps),'all');
-    % gr_xsim_roi(mm,2) = std(res_roi_xsim(:,2:n_reps),[],'all');
-
-
-
 end % for mm = 1:n_meth
+
+
+%% ANOVA - RMSE
+
+% Do one-way ANOVA
+res_anova = anova(stat_xsim_roi(:,:,1)');
+
+% Pull p-value
+res_pval = res_anova.stats.pValue(1);
+
+% If there is a significance, do multiple comparisons
+if res_pval < 0.05
+
+    t_mult_r = multcompare(res_anova);
+
+    % Pull out only the statistically significant pairs
+    t_mult_r = t_mult_r(t_mult_r.pValue < 0.05, :);
+
+    % Loop over remaining pairs
+    for pp = 1:size(t_mult_r,1)
+        disp([names_methnice{t_mult_r.Group1(pp)},' - ',names_methnice{t_mult_r.Group2(pp)},...
+             ' (ROI) are significantly different, at p = ',num2str(t_mult_r.pValue(pp))]);
+    end
+
+
+else % if res_pval < 0.05
+    disp('No significant differences (RMSE)');
+
+end % if res_pval < 0.05 // else
+
+
 
 
 %% Bar Chart of RMSE
@@ -68,9 +90,9 @@ br1 = bar(stat_rmse_roi(:,:,1)',1,'FaceColor','Flat');
 box on; hold on;
 
 % Pre-allocate array of x positions for the ends of the boxes
-xpos = zeros(n_rois,2);
+xpos = zeros(n_rois,n_meth);
 
-for ee = 1:2
+for ee = 1:n_meth
     xpos(:,ee) = br1(ee).XEndPoints;
 end
 
@@ -82,8 +104,8 @@ br_e = stat_rmse_roi(:,:,2)';
 er1 = errorbar(xpos(:),br_c(:),br_e(:),'k','LineStyle','none','LineWidth',1);
 
 % Labels
-ylim([0,135]);
-ylabel('RMSE');
+ylim([0,1]);
+ylabel('NRMSE');
 xticks(1:n_rois);
 xticklabels(names_roi);
 % 
@@ -117,9 +139,9 @@ br2 = bar(stat_xsim_roi(:,:,1)',1,'FaceColor','Flat');
 box on; hold on;
 
 % Pre-allocate array of x positions for the ends of the boxes
-xpos = zeros(n_rois,2);
+xpos = zeros(n_rois,n_meth);
 
-for ee = 1:2
+for ee = 1:n_meth
     xpos(:,ee) = br2(ee).XEndPoints;
 end
 
@@ -128,14 +150,14 @@ br_c = stat_xsim_roi(:,:,1)';
 br_e = stat_xsim_roi(:,:,2)';
 
 % Plot the error bars
-er1 = errorbar(xpos(:),br_c(:),br_e(:),'k','LineStyle','none','LineWidth',1);
+er2 = errorbar(xpos(:),br_c(:),br_e(:),'k','LineStyle','none','LineWidth',1);
 
 % Labels
 ylim([0,1]);
 ylabel('XSIM');
 xticks(1:n_rois);
 xticklabels(names_roi);
-% 
+
 % % Significance bars - whole brain
 % for pp = 1:size(t_mult_w,1)
 %     plot([xpos(t_mult_w.Group1(pp),1),xpos(t_mult_w.Group2(pp),1)],...
@@ -154,69 +176,5 @@ xticklabels(names_roi);
 legend(names_methnice,'Location','NorthWest')
 legend('boxoff');
 
-
-
-%% ANOVA - Whole Brain
-
-% % Choose data
-% stat_table = stat_xsim_wbr(:,:)';
-% 
-% % Do one-way anova
-% res_anova = anova(stat_table);
-% 
-% % Pull p-value
-% res_pval = res_anova.stats.pValue(1);
-% 
-% % If there is a significance, do multiple comparisons
-% if res_pval < 0.05
-% 
-%     t_mult_w = multcompare(res_anova);
-% 
-%     % Pull out only the statistically significant pairs
-%     t_mult_w = t_mult_w(t_mult_w.pValue < 0.05, :);
-% 
-%     % Loop over remaining pairs
-%     for pp = 1:size(t_mult_w,1)
-%         disp([names_methnice{t_mult_w.Group1(pp)},' - ',names_methnice{t_mult_w.Group2(pp)},...
-%              ' (WBR) are significantly different, at p = ',num2str(t_mult_w.pValue(pp))]);
-%     end
-% 
-% 
-% else % if res_pval < 0.05
-%     disp('No significant differences (WBR)');
-% 
-% end % if res_pval < 0.05 // else
-% 
-% 
-% %% ANOVA - ROIs
-% 
-% % Choose data
-% stat_table = stat_xsim_roi(:,:)';
-% 
-% % Do one-way anova
-% res_anova = anova(stat_table);
-% 
-% % Pull p-value
-% res_pval = res_anova.stats.pValue(1);
-% 
-% % If there is a significance, do multiple comparisons
-% if res_pval < 0.05
-% 
-%     t_mult_r = multcompare(res_anova);
-% 
-%     % Pull out only the statistically significant pairs
-%     t_mult_r = t_mult_r(t_mult_r.pValue < 0.05, :);
-% 
-%     % Loop over remaining pairs
-%     for pp = 1:size(t_mult_r,1)
-%         disp([names_methnice{t_mult_r.Group1(pp)},' - ',names_methnice{t_mult_r.Group2(pp)},...
-%              ' (ROI) are significantly different, at p = ',num2str(t_mult_r.pValue(pp))]);
-%     end
-% 
-% 
-% else % if res_pval < 0.05
-%     disp('No significant differences (ROI)');
-% 
-% end % if res_pval < 0.05 // else
 
 
