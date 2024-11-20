@@ -6,16 +6,17 @@ clearvars;
 close all;
 
 % Data directory
-dir_data = '/home/cherukara/Documents/Coding/MTC_QSM/Analysis/HNRepeatability_Data/';
+% dir_data = '/home/cherukara/Documents/Coding/MTC_QSM/Analysis/HNRepeatability_Data/';
+dir_data = '..\MTC_QSM\Analysis\HNRepeatability_Data\';
 
 % Methods we are comparing
-meth_names = {'iterTik','StarQSM','FANSI','autoNDI','TFI','QSMnet'};
-% meth_names = {'LBV','PDF','VSHARP'};
+% meth_names = {'iterTik','StarQSM','FANSI','autoNDI','TFI','QSMnet'};
+meth_names = {'LBV','PDF','VSHARP'};
 % meth_names = {'LPU','SEGUE'};
 n_meth = length(meth_names);
 
 % Metric (choose 'XSIM' or 'NRMSE')
-name_metric = 'NRMSE';
+name_metric = 'XSIM';
 
 % Long ROI names
 names_roi = {'Thalamus','Caudate Nucleus','Putamen','Globus Pallidus'};
@@ -231,60 +232,5 @@ end
 legend(names_methnice,'Location','best');
 legend('boxoff');
 
-
-%% Bar Chart of XSIM
-% 
-% % Figure
-% f2 = figure(2); clf;
-% set(f2,'Position',[250,300,(200 + 100.*n_rois),550]);
-% 
-% % Bar Chart
-% br2 = bar(stat_xsim_roi(:,:,1)',1,'FaceColor','Flat');
-% box on; hold on;
-% 
-% % Pre-allocate array of x positions for the ends of the boxes
-% xpos = zeros(n_rois,n_meth);
-% 
-% for ee = 1:n_meth
-%     xpos(:,ee) = br2(ee).XEndPoints;
-% end
-% 
-% % Pull out centre points and ends of the error bars
-% br_c = stat_xsim_roi(:,:,1)';
-% br_e = stat_xsim_roi(:,:,2)';
-% 
-% % Plot the error bars
-% er2 = errorbar(xpos(:),br_c(:),br_e(:),'k','LineStyle','none','LineWidth',1);
-% 
-% % Labels
-% ylim([0,1]);
-% ylabel('XSIM');
-% xticks(1:n_rois);
-% xticklabels(names_roi);
-% 
-% % Plot Significance bars
-% 
-% % Find maximum height for each ROI
-% hmax = max(br_c+br_e,[],2);
-% 
-% % Loop over ROIs and pairs
-% for rr = 1:n_rois
-%     for pp = 1:n_pairs
-% 
-%         % If this comparison is significant, plot it
-%         if mat_sigpair(rr,pp)
-%             plot([xpos(rr,pairs_mult(pp,1)),xpos(rr,pairs_mult(pp,2))],...
-%                  [hmax(rr)+0.02*pp,hmax(rr)+0.02*pp],...
-%                  'k-','LineWidth',1.25);
-%         end
-% 
-%     end
-% end
-% 
-% 
-% % Legend
-% legend(names_methnice,'Location','NorthWest')
-% legend('boxoff');
-% 
 
 
