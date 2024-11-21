@@ -41,9 +41,9 @@ Params.TEs = (1:Params.NEchoes).*4.61e-3;
 
 % Choose algorithm for each step
 method_fitting = 'load';
-method_unwrap = 'LPU';
+method_unwrap = 'SEGUE';
 method_bgfr = 'PDF';
-method_dipole = 'iterTik';
+method_dipole = 'autoNDI';
 
 % Optional Processing Steps
 is_MPPCA = 1;
@@ -51,9 +51,9 @@ is_MPPCA = 1;
 % Masking steps
 is_mask_noise = 1;
 is_mask_mfg = 0;
-is_mask_fill = 0;
+is_mask_fill = 1;
 is_mask_conn = 0;
-is_mask_erode = 0;
+is_mask_erode = 1;
 is_mask_vs = 0;
 
 % Choose which outputs to save
@@ -65,7 +65,7 @@ save_localfield = 1;
 %% Loop Over Subjects and Sessions
 
 % Subject number
-for sub = 2:10
+for sub = 1:10
 
 % Session number - set this to 0 if there is no "session" level in the BIDS
 % hierarchy
@@ -311,10 +311,11 @@ if any(strcmp(method_bgfr_name,{'vsharp','v-sharp'}))
     is_mask_erode = 0;
 end
 
+
 if is_mask_erode == 1
 
     % Erode the mask using a radius 1 disk
-    arr_tempmask = imerode(arr_mask,strel('disk',1));
+    arr_tempmask = imerode(arr_mask,strel('disk',2));
 
     % Apply the current mask to the main mask
     arr_mask = arr_mask .* arr_tempmask;
