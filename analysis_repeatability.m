@@ -1,4 +1,4 @@
-% MTC_METHOD_REPEATABILITY.m
+% ANALYSIS_REPEATABILITY.m
 %
 % Load the data from a particular method and calculate its repeatability
 % statistics
@@ -14,39 +14,43 @@
 clearvars;
 close all;
 
-% mtc_setup;
-
-% Colormap
-vec_c = colorcet('c1');     % Colorcet's cyclic M-R-Y-B
-% vec_c = [  25, 161, 178; ...      % UCL Bright Blue 90%
-%           158,  61,  65; ...      % UCL Mid Red 90%
-%           143, 153,  62; ...      % UCL Mid Green 100%
-%            98,  32, 113]./255;    % UCL Mid Purple 90%
-
 
 %% Choose the Data
 
+% Data directory
+if isunix == 1
+    dir_data = '/home/cherukara/Documents/Coding/MTC_QSM/Analysis/HNRepeatability_Data/';
+else
+    dir_data = '..\MTC_QSM\Analysis\HNRepeatability_Data\';
+end
+
 % Choose ROIs
 % pickrois = [7,8,3,13:15];   % Neck
-pickrois = [9:12];            % Brain
-% pickrois = [9:12,7,8,3,13:15];  % All HN ROIs
+% pickrois = [9:12];            % Brain
+pickrois = [9:12,7,8,3,13:15];  % All HN ROIs
 n_pick = length(pickrois);
 
 % Choose the data sets we want to load
-meth_names = {'unwrapped-SEGUE_bfr-PDF_susc-iterTik',...
-              'unwrapped-SEGUE_bfr-PDF_susc-StarQSM',...
-              'unwrapped-SEGUE_bfr-PDF_susc-FANSI',...
-              'unwrapped-SEGUE_bfr-PDF_susc-autoNDI',...
-              'unwrapped-SEGUE_bfr-PDF_susc-QSMnet',...
-              'unwrapped-SEGUE_bfr-TFI_susc-TFI'};
+% meth_names = {'unwrapped-SEGUE_bfr-PDF_susc-iterTik',...
+%               'unwrapped-SEGUE_bfr-PDF_susc-StarQSM',...
+%               'unwrapped-SEGUE_bfr-PDF_susc-FANSI',...
+%               'unwrapped-SEGUE_bfr-PDF_susc-autoNDI',...
+%               'unwrapped-SEGUE_bfr-PDF_susc-QSMnet',...
+%               'unwrapped-SEGUE_bfr-TFI_susc-TFI'};
+% meth_names = {'unwrapped-SEGUE_mask-nfv_bfr-LBV_susc-iterTik',...
+%               'unwrapped-SEGUE_mask-nfv_bfr-PDF_susc-iterTik',...
+%               'unwrapped-SEGUE_mask-nfv_bfr-VSHARP_susc-iterTik'};
+meth_names = {'unwrapped-LPU_mask-nfv_bfr-PDF_susc-iterTik',...
+              'unwrapped-SEGUE_mask-nfv_bfr-PDF_susc-iterTik'};
 n_meth = length(meth_names);
 
 n_subs = 10;
 n_reps = 6;
 
 % Nice Method Names
-names_methnice = {'Tik','StarQSM','FANSI','NDI','QSMnet','TFI'};
-% names_methnice = {'PDF','LBV','V-SHARP','iHARP'};
+% names_methnice = {'iterTik','StarQSM','FANSI','NDI','QSMnet','TFI'};
+% names_methnice = {'LBV','PDF','VSHARP'};
+names_methnice = {'LPU','SEGUE'};
 
 
 % Bootstrap number of samples
@@ -82,7 +86,7 @@ arr_av_full = zeros(n_subs.*n_reps,n_pick,n_meth);
 for mm = 1:n_meth
 
     % Load the Data
-    load(strcat('Analysis_Data/Repeatability_',meth_names{mm},'_data.mat'));
+    load(strcat(dir_data,'Repeatability_',meth_names{mm},'_ref_data.mat'));
 
     for rr = 1:length(pickrois)
     
@@ -93,17 +97,22 @@ for mm = 1:n_meth
         % Pull out the tissue standard deviation
         stat_tsd(mm,rr,1) = mean(arr_roi_sd(:,:,r1),'all','omitnan');
 
-        % Calculate lower CI on standard deviation
+        % Calculate CIs on tissue standard deviation
         stat_tsd(mm,rr,2) = sqrt(roi_dof(r1)).*stat_tsd(mm,rr,1)./chi2inv(0.975,roi_dof(r1));
         stat_tsd(mm,rr,3) = sqrt(roi_dof(r1)).*stat_tsd(mm,rr,1)./chi2inv(0.025,roi_dof(r1));
 
-        % Calculate between-subject standard deviation (and Bootstrap)
-        stat_bsd(mm,rr,1) = std_intersub(arr_data);
-        stat_bsd(mm,rr,2:3) = bootci(n_boot,std_intersub,arr_data);
-
-        % Calculate within-subject standard deviation
+        % Calculate within-subject standard deviation (and CIs)
         stat_wsd(mm,rr,1) = std_interrep(arr_data);
-        stat_wsd(mm,rr,2:3) = bootci(n_boot,std_interrep,arr_data);
+        % stat_wsd(mm,rr,2:3) = bootci(n_boot,std_interrep,arr_data);
+        stat_wsd(mm,rr,2) = sqrt(roi_dof(r1)).*stat_wsd(mm,rr,1)./chi2inv(0.975,roi_dof(r1));
+        stat_wsd(mm,rr,3) = sqrt(roi_dof(r1)).*stat_wsd(mm,rr,1)./chi2inv(0.025,roi_dof(r1));
+
+        % Calculate between-subject standard deviation (and CIs)
+        stat_bsd(mm,rr,1) = std_intersub(arr_data);
+        % stat_bsd(mm,rr,2:3) = bootci(n_boot,std_intersub,arr_data);
+        stat_bsd(mm,rr,2) = sqrt(roi_dof(r1)).*stat_bsd(mm,rr,1)./chi2inv(0.975,roi_dof(r1));
+        stat_bsd(mm,rr,3) = sqrt(roi_dof(r1)).*stat_bsd(mm,rr,1)./chi2inv(0.025,roi_dof(r1));
+
 
         % Calculate overall mean
         stat_mean(mm,rr) = mean(arr_data,[1,2],'omitnan');
@@ -130,8 +139,6 @@ for mm = 1:n_meth
 
 end % for mm = 1:n_meth
 
-% Calculate sensitivity as a fraction of mean value
-stat_sens = 2.*sqrt(2).*stat_osd./(stat_mean.*sqrt(n_subs));
 
 
 %% Box Plot of Actual Susceptibility Values
@@ -159,13 +166,14 @@ xticklabels(names_roi(pickrois));
 xlim([0.5,(1.25.*n_pick)+0.75]);
 legend(names_methnice,'Location','NorthWest');
 legend('boxoff');
-ylabel('Susceptibility (ppm)')
+ylabel('Susceptibility (ppm)');
+set(gca,'FontSize',16,'FontName','Calibri');
 
 
 %% Compare Standard Deviations from a given Method
 
 % Choose a method
-pick_meth = 4;
+pick_meth = 3;
 
 % Pull out the three standard deviations
 mat_sd = [stat_tsd(pick_meth,:,1); stat_wsd(pick_meth,:,1); stat_bsd(pick_meth,:,1)]';
@@ -176,34 +184,13 @@ mat_sdub = [stat_tsd(pick_meth,:,3); stat_wsd(pick_meth,:,3); stat_bsd(pick_meth
 xpos = repmat([-0.2,0,0.2],n_pick,1) + repmat((1:n_pick)',1,3);
 
 % Create figure window
-f9 = figure(10); clf;
+f9 = figure(11); clf;
 set(f9,'Position',[250,350,(200 + 80.*n_pick),550]);
 
 % Plot intervals as error bars
 er9 = errorbar(xpos,mat_sd,mat_sdlb,mat_sdub,'Marker','diamond',...
               'LineStyle','none','LineWidth',1.5);
 hold on; box on;
-% 
-% % % Bar chart
-% % br9 = bar(mat_sd,1,'FaceColor','Flat','FaceAlpha',0.5);
-% 
-% 
-% % Plot error bars showing Bootstrap results
-% if is_plotboot == 1
-% 
-%     % Pre-allocate array of x positions for the ends of the boxes
-%     xpos = zeros(n_pick,3);
-% 
-%     % Loop through methods and fill it in
-%     for mm = 1:3
-%         xpos(:,mm) = br9(mm).XEndPoints;
-%     end
-% 
-%     % Plot the error bars
-%     er11 = errorbar(xpos(:),mat_sd(:),mat_sdlb(:),mat_sdub(:),...
-%                     'LineStyle','none','LineWidth',2);
-%     hold on;
-% end
 
 % Labels
 ylabel('Standard Deviation (ppm)');
@@ -211,36 +198,8 @@ xticks(1:n_pick);
 xticklabels(names_roi(pickrois));
 legend({'Within-Region SD \sigma_r','Within-Subject SD \sigma_w','Between-Subject SD \sigma_b'},'Location','NorthWest');
 legend('boxoff');
-
-
-
-%% Plot a quick graph of between-subject and within-subject standard deviation
-
-% % Calculate the average across all subjects
-% %   ARR_AV_SUB has dimensions METHODS * ROIS
-% arr_av_sub = squeeze(mean(arr_roi_av,1,'omitnan'));
-% arr_av_sub = arr_av_sub(:,pickrois);
-% 
-% % Create figure window
-% f9 = figure(9); clf;
-% set(f9,'Position',[100,100,850,600]);
-% 
-% % Plot the error bars
-% e9v = errorbar(arr_av_sub',arr_av_sub',stat_ssd(:,:,1)','.','horizontal','LineWidth',1.25);
-% hold on;
-% e9h = errorbar(arr_av_sub',arr_av_sub',stat_rsd(:,:,1)','.','LineWidth',1.25);
-% axis equal;
-% 
-% % Colours
-% for mm = 1:n_meth
-%     e9h(mm).Color = e9v(mm).Color;
-% end % for mm = 1:n_meth
-% 
-% % Labels
-% ylabel('Within-Subject Variation (ppm)');
-% xlabel('Inter-Subject Variation (ppm)');
-% legend(names_methnice,'Location','NorthWest');
-% set(gca,'FontSize',16);
+set(gca,'FontSize',16,'FontName','Calibri');
+ylim([0,0.3]);
 
 
 %% Plot Repeatability Coefficient
@@ -281,7 +240,7 @@ xticks(1:n_pick);
 xticklabels(names_roi(pickrois));
 legend(names_methnice,'Location','NorthWest');
 legend('boxoff');
-set(gca,'FontSize',16);
+set(gca,'FontSize',16,'FontName','Calibri');
 
 
 
@@ -302,13 +261,13 @@ plot(xv,[0.2,0.2],'k:','LineWidth',1.5);
 
 % Labels
 ylabel('Coefficient of Variation');
-% ylim([0,1])
+ylim([0,2])
 xlim([0.5,n_pick+0.5])
 xticks(1:n_pick);
 xticklabels(names_roi(pickrois));
 legend(names_methnice,'Location','NorthWest');
-legend('boxoff');
-set(gca,'FontSize',16);
+% legend('boxoff');
+set(gca,'FontSize',16,'FontName','Calibri');
 
 
 %% Plot ICC
@@ -354,13 +313,8 @@ xlim([0.5,n_pick+0.5])
 xlim([0.5,n_pick+0.5])
 xticks(1:n_pick);
 xticklabels(names_roi(pickrois));
-% legend(names_methnice,'Location','NorthEast');
+legend(names_methnice,'Location','SouthEast');
 % legend('boxoff');
-set(gca,'FontSize',16);
+set(gca,'FontSize',16,'FontName','Calibri');
 
-% % Colours
-% b13(1).CData = vec_c(1,:);
-% b13(2).CData = vec_c(2,:);
-% b13(3).CData = vec_c(3,:);
-% b13(4).CData = vec_c(4,:); 
 

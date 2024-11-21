@@ -41,8 +41,8 @@ Params.TEs = (1:Params.NEchoes).*4.61e-3;
 
 % Choose algorithm for each step
 method_fitting = 'load';
-method_unwrap = 'SEGUE';
-method_bgfr = 'LBV';
+method_unwrap = 'LPU';
+method_bgfr = 'PDF';
 method_dipole = 'iterTik';
 
 % Optional Processing Steps
@@ -51,12 +51,13 @@ is_MPPCA = 1;
 % Masking steps
 is_mask_noise = 1;
 is_mask_mfg = 0;
-is_mask_fill = 1;
+is_mask_fill = 0;
 is_mask_conn = 0;
 is_mask_erode = 0;
+is_mask_vs = 0;
 
 % Choose which outputs to save
-save_mask = 0;
+save_mask = 1;
 save_unwrap = 1;
 save_localfield = 1;
 
@@ -64,11 +65,11 @@ save_localfield = 1;
 %% Loop Over Subjects and Sessions
 
 % Subject number
-for sub = 3
+for sub = 2:10
 
 % Session number - set this to 0 if there is no "session" level in the BIDS
 % hierarchy
-for ses = 6
+for ses = 1:6
 
 % Start the timer
 tStart = tic;
@@ -337,8 +338,10 @@ if save_mask == 1
 end
 
 % Load the VS mask
-arr_mask = double(niftiread(strcat(dir_qsm,scanname,'_desc-nfv_mask')));
-str_mask = 'nfv';
+if is_mask_vs == 1
+    arr_mask = double(niftiread(strcat(dir_qsm,scanname,'_desc-nfv_mask')));
+    str_mask = 'nfv';
+end
 
 
 %% 3. Phase Unwrapping

@@ -6,13 +6,16 @@ clearvars;
 close all;
 
 % Data directory
-% dir_data = '/home/cherukara/Documents/Coding/MTC_QSM/Analysis/HNRepeatability_Data/';
-dir_data = '..\MTC_QSM\Analysis\HNRepeatability_Data\';
+if isunix == 1
+    dir_data = '/home/cherukara/Documents/Coding/MTC_QSM/Analysis/HNRepeatability_Data/';
+else
+    dir_data = '..\MTC_QSM\Analysis\HNRepeatability_Data\';
+end
 
 % Methods we are comparing
-% meth_names = {'iterTik','StarQSM','FANSI','autoNDI','TFI','QSMnet'};
-meth_names = {'LBV','PDF','VSHARP'};
-% meth_names = {'LPU','SEGUE'};
+% meth_names = {'Previous','iterTik','StarQSM','FANSI','autoNDI','TFI','QSMnet'};
+% meth_names = {'LBV','PDF','VSHARP'};
+meth_names = {'LPU','SEGUE'};
 n_meth = length(meth_names);
 
 % Metric (choose 'XSIM' or 'NRMSE')
@@ -202,6 +205,9 @@ er1 = errorbar(xpos(:),br_c(:),br_e(:),'k','LineStyle','none','LineWidth',1);
 ylabel(name_metric);
 xticks(1:n_rois);
 xticklabels(names_roi);
+
+% Figure
+set(gca,'FontSize',16,'FontName','Calibri');
 
 % Plot Significance bars
 if is_sigline == 1
