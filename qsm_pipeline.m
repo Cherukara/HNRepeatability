@@ -41,7 +41,7 @@ Params.TEs = (1:Params.NEchoes).*4.61e-3;
 
 % Choose algorithm for each step
 method_fitting = 'load';
-method_unwrap = 'SEGUE';
+method_unwrap = 'LPU';
 method_bgfr = 'PDF';
 method_dipole = 'autoNDI';
 
