@@ -49,7 +49,7 @@ do
         sqsmdir=${datadir}/derivatives/qsm/sub-${ss}/ses-0${i}/qsm
 
         # Create a brain-only QSM for this session
-        fslmaths ${sqsmdir}/${sname}_unwrapped-LPU_mask-n_bfr-PDF_susc-iterTik_Chimap \
+        fslmaths ${sqsmdir}/${sname}_unwrapped-SEGUE_mask-ne_bfr-PDF_susc-autoNDI_Chimap \
             -mul ${sanatdir}/${sname}_desc-brain_mask \
             ${sqsmdir}/${sname}_mask-brain_method-${method}_Chimap
 
