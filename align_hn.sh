@@ -10,7 +10,7 @@
 datadir=/media/cherukara/DATA/HN_Repeatability_BIDS
 
 # Method name
-method=filledmask
+method=VSHARP
 
 # Loop through subjects
 for s in {1..10}
@@ -49,7 +49,7 @@ do
         sqsmdir=${datadir}/derivatives/qsm/sub-${ss}/ses-0${i}/qsm
 
         # Create a brain-only QSM for this session
-        fslmaths ${sqsmdir}/${sname}_unwrapped-SEGUE_mask-nfe_bfr-PDF_susc-autoNDI_Chimap \
+        fslmaths ${sqsmdir}/${sname}_unwrapped-SEGUE_mask-nfe_bfr-VSHARP_susc-autoNDI_Chimap \
             -mul ${sanatdir}/${sname}_desc-brain_mask \
             ${sqsmdir}/${sname}_mask-brain_method-${method}_Chimap
 

@@ -14,12 +14,12 @@ end
 
 % Methods we are comparing
 % meth_names = {'Previous','iterTik','StarQSM','FANSI','autoNDI','TFI','QSMnet'};
-% meth_names = {'LBV','PDF','VSHARP'};
-meth_names = {'LPU','SEGUE'};
+meth_names = {'PDF','VSHARP'};
+% meth_names = {'LPU','SEGUE'};
 n_meth = length(meth_names);
 
 % Metric (choose 'XSIM' or 'NRMSE')
-name_metric = 'XSIM';
+name_metric = 'NRMSE';
 
 % Long ROI names
 names_roi = {'Thalamus','Caudate Nucleus','Putamen','Globus Pallidus'};
@@ -31,6 +31,7 @@ n_reps = 6;
 
 % We might want to rename the methods
 names_methnice = meth_names;
+% names_methnice = {'Noise Mask';'Filled Noise Mask'};
 
 % Do we want to plot horizontal lines indicating statistical significance?
 is_sigline = 1;
@@ -179,7 +180,7 @@ end % for rr = 1:n_rois
 %% Bar Chart of Results
 
 % Figure
-f1 = figure(1); clf;
+f1 = figure(2); clf;
 set(f1,'Position',[150,300,(200 + 30.*n_rois.*n_meth),550]);
 
 % Bar Chart
@@ -235,7 +236,7 @@ if is_sigline == 1
 end
 
 % Legend
-legend(names_methnice,'Location','best');
+legend(names_methnice,'Location','NorthEast');
 legend('boxoff');
 
 

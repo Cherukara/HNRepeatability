@@ -31,9 +31,9 @@ names_roi = {'Lymph Node','Lymph Node','Lymph Node','Lymph Node',...
 
 % Method name
 str_unwr = 'SEGUE';
-str_mask = 'nfv';
-str_bkgr = 'VSHARP';
-str_susc = 'iterTik';
+str_mask = 'ne';
+str_bkgr = 'PDF';
+str_susc = 'autoNDI';
 
 % Put the method name together
 str_meth = strcat('_unwrapped-',str_unwr,'_mask-',str_mask,'_bfr-',str_bkgr,'_susc-',str_susc,'_');

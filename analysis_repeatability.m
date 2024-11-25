@@ -40,8 +40,8 @@ n_pick = length(pickrois);
 % meth_names = {'unwrapped-SEGUE_mask-nfv_bfr-LBV_susc-iterTik',...
 %               'unwrapped-SEGUE_mask-nfv_bfr-PDF_susc-iterTik',...
 %               'unwrapped-SEGUE_mask-nfv_bfr-VSHARP_susc-iterTik'};
-meth_names = {'unwrapped-LPU_mask-nfv_bfr-PDF_susc-iterTik',...
-              'unwrapped-SEGUE_mask-nfv_bfr-PDF_susc-iterTik'};
+meth_names = {'unwrapped-SEGUE_mask-ne_bfr-PDF_susc-autoNDI',...
+              'unwrapped-SEGUE_mask-nfe_bfr-PDF_susc-autoNDI'};
 n_meth = length(meth_names);
 
 n_subs = 10;
@@ -50,7 +50,7 @@ n_reps = 6;
 % Nice Method Names
 % names_methnice = {'iterTik','StarQSM','FANSI','NDI','QSMnet','TFI'};
 % names_methnice = {'LBV','PDF','VSHARP'};
-names_methnice = {'LPU','SEGUE'};
+names_methnice = {'Noise Mask','Filled Noise Mask'};
 
 
 % Bootstrap number of samples
@@ -103,15 +103,15 @@ for mm = 1:n_meth
 
         % Calculate within-subject standard deviation (and CIs)
         stat_wsd(mm,rr,1) = std_interrep(arr_data);
-        % stat_wsd(mm,rr,2:3) = bootci(n_boot,std_interrep,arr_data);
-        stat_wsd(mm,rr,2) = sqrt(roi_dof(r1)).*stat_wsd(mm,rr,1)./chi2inv(0.975,roi_dof(r1));
-        stat_wsd(mm,rr,3) = sqrt(roi_dof(r1)).*stat_wsd(mm,rr,1)./chi2inv(0.025,roi_dof(r1));
+        stat_wsd(mm,rr,2:3) = bootci(n_boot,std_interrep,arr_data);
+        % stat_wsd(mm,rr,2) = sqrt(roi_dof(r1)).*stat_wsd(mm,rr,1)./chi2inv(0.975,roi_dof(r1));
+        % stat_wsd(mm,rr,3) = sqrt(roi_dof(r1)).*stat_wsd(mm,rr,1)./chi2inv(0.025,roi_dof(r1));
 
         % Calculate between-subject standard deviation (and CIs)
         stat_bsd(mm,rr,1) = std_intersub(arr_data);
-        % stat_bsd(mm,rr,2:3) = bootci(n_boot,std_intersub,arr_data);
-        stat_bsd(mm,rr,2) = sqrt(roi_dof(r1)).*stat_bsd(mm,rr,1)./chi2inv(0.975,roi_dof(r1));
-        stat_bsd(mm,rr,3) = sqrt(roi_dof(r1)).*stat_bsd(mm,rr,1)./chi2inv(0.025,roi_dof(r1));
+        stat_bsd(mm,rr,2:3) = bootci(n_boot,std_intersub,arr_data);
+        % stat_bsd(mm,rr,2) = sqrt(roi_dof(r1)).*stat_bsd(mm,rr,1)./chi2inv(0.975,roi_dof(r1));
+        % stat_bsd(mm,rr,3) = sqrt(roi_dof(r1)).*stat_bsd(mm,rr,1)./chi2inv(0.025,roi_dof(r1));
 
 
         % Calculate overall mean
@@ -173,7 +173,7 @@ set(gca,'FontSize',16,'FontName','Calibri');
 %% Compare Standard Deviations from a given Method
 
 % Choose a method
-pick_meth = 3;
+pick_meth = 1;
 
 % Pull out the three standard deviations
 mat_sd = [stat_tsd(pick_meth,:,1); stat_wsd(pick_meth,:,1); stat_bsd(pick_meth,:,1)]';
@@ -274,7 +274,7 @@ set(gca,'FontSize',16,'FontName','Calibri');
 
 % Create Figure Window
 f13 = figure(13); clf;
-set(f13,'Position',[200,100,(300 + 25.*n_meth.*n_pick),550]);
+set(f13,'Position',[200,100,(300 + 35.*n_meth.*n_pick),550]);
 
 % Bar Chart
 b13 = bar(stat_ic(:,:,1)',1,'FaceColor','Flat','FaceAlpha',0.5);

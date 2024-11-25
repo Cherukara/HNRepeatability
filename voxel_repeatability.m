@@ -18,6 +18,15 @@
 clearvars;
 close all;
 
+% Add toolboxes to path - replace these with your own path
+addpath(genpath('/home/cherukara/Documents/Coding/Toolboxes/MEDI_toolbox/'));
+addpath(genpath('/home/cherukara/Documents/Coding/Toolboxes/STISuite_V3.0/'));
+
+% Utilities functions contained within this repository
+addpath(fullfile('.','utils'));
+addpath(genpath(fullfile('.','FANSI-toolbox')));
+addpath(genpath(fullfile('.','chi-separation')));
+
 %% Set up Data Set
 
 % Data directory
@@ -33,17 +42,17 @@ subs = 1:10;
 sessions = 1:6;
 
 % Method name
-str_unwr = 'LPU';
-str_mask = 'n';
-str_bkgr = 'PDF';
-str_susc = 'iterTik';
+str_unwr = 'SEGUE';
+str_mask = 'nfe';
+str_bkgr = 'VSHARP';
+str_susc = 'autoNDI';
 
 % Put the method name together
 str_full = strcat('_unwrapped-',str_unwr,'_mask-',str_mask,'_bfr-',str_bkgr,'_susc-',str_susc,'_');
 % str_full = strcat('_unwrapped-',str_unwr,'_bfr-',str_bkgr,'_susc-',str_susc,'_');
 
 % Registered method name
-str_meth = 'noisemask';
+str_meth = 'VSHARP';
 
 % Long ROI names
 names_roi = {'Thalamus','Caudate Nucleus','Putamen','Globus Pallidus'};
