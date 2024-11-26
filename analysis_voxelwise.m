@@ -1,4 +1,7 @@
-% ANALYSIS_VOXELWISE.m calculates voxel-wise repeatability metrics for QSM
+% ANALYSIS_VOXELWISE.m compares voxel-wise repeatability metrics for QSM.
+%
+% The data should already have been processed and the metrics calculated using
+% VOXEL_REPEATABILITY.m, which saves the values in a .mat file.
 %
 % MT Cherukara, October 2024
 

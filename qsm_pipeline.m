@@ -1,10 +1,60 @@
 % QSM_PIPELINE.m reconstructs QSMs from BIDS-formatted NIFTI data
+%   Created by MT Cherukara, May 2024
 %
 %
 %       Copyright (C) University College London, 2024
 %
 %
-% Created by MT Cherukara, May 2024
+% Requires multi-echo complex data, stored as NIFTIs, in BIDS format, with
+% separate files for each echo and for the magnitude and phase data. Such as:
+%
+%   BIDS_dataset
+%   └── rawdata 
+%       ├── sub-01
+%       │   ├── ses-01
+%       │   │   └── anat
+%       │   │       ├── sub-01_ses-01_part-mag_echo-1_GRE.nii
+%       │   │       ├── sub-01_ses-01_part-mag_echo-2_GRE.nii
+%       │   │       ├── sub-01_ses-01_part-phase_echo-1_GRE.nii
+%       │   │       ├── sub-01_ses-01_part-phase_echo-2_GRE.nii
+%       │   │       └── etc.
+%       │   └── ses-02
+%       │       └── anat
+%       │           └── etc.
+%       └── sub-02
+%           └── etc.
+%
+% Adjust the variables 'sub' and 'ses' for the appropriate numbers. The 'params'
+% struct contains important parameters for different parts of the reconstruction
+% process. These are currently hard-coded and must be changed manually to suit
+% your data.
+%
+% The 'method_x' parameters are used to specify which method to use for each
+% processing step. The 'load' option searches your BIDS-formatted derivatives
+% directory for data that has already been calculated and saved.
+%
+%       method_fitting =    { 'MEDI', 'load' }
+%       method_unwrap =     { 'LPU', 'SEGUE', 'load' }
+%       method_bgfr =       { 'PDF', 'LBV', 'VSHARP', 'TFI', 'load' }
+%       method_dipole =     { 'dirTik', 'iterTik', 'TFI', 'FANSI', ...
+%                             'StarQSM', 'iLSQR', 'autoNDI', 'QSMnet' }
+%
+% The 'is_x' boolean parameters allow you to specify other pre-processing
+% steps, and the 'save_x' parameters allow you to save intermediate steps (these
+% will be saved as NIFTIs in a BIDS-formatted 'derivatives' directory).
+%
+% To access all of the options in this script requires:
+%
+%   chi-separation toolbox (attached as a submodule)
+%   FANSI-toolbox (attached as a submodule)
+%   MEDI toolbox (requires a path to your local version)
+%   STI Suite (requires a path to your local version)
+%       other functions contained in the 'utils' folder
+%
+%
+% CHANGELOG:
+%
+% 2024-11-26 (MTC). Original version, with documentation.
 
 clearvars;
 
@@ -50,11 +100,8 @@ is_MPPCA = 1;
 
 % Masking steps
 is_mask_noise = 1;
-is_mask_mfg = 0;
 is_mask_fill = 1;
-is_mask_conn = 0;
 is_mask_erode = 1;
-is_mask_vs = 0;
 
 % Choose which outputs to save
 save_mask = 1;
@@ -259,20 +306,6 @@ if is_mask_noise == 1
 
 end
 
-% Mask based on magnitude of field gradients
-if is_mask_mfg == 1
-
-    % Gradient-based threshold mask
-    arr_tempmask = GradientBasedThreshold(arr_fieldfit, arr_mask, 3) == 1;
-
-    % Apply the current mask to the main mask
-    arr_mask = arr_mask .* arr_tempmask;
-
-    % Update description string
-    str_mask = strcat(str_mask,'g');
-
-end
-
 % Fill holes in the mask
 if is_mask_fill == 1
 
@@ -281,23 +314,6 @@ if is_mask_fill == 1
 
     % Update description string
     str_mask = strcat(str_mask,'f');
-
-end
-
-
-% Mask out unconnected components of the original mask
-if is_mask_conn == 1
-
-    CC = bwconncomp(arr_mask,18);
-    Careas = regionprops(CC, 'Area');
-    LL = labelmatrix(CC);
-    arr_tempmask = ismember(LL, find([Careas.Area] >= 0.5*max([Careas.Area])));
-
-    % Apply the current mask to the main mask
-    arr_mask = arr_mask .* arr_tempmask;
-
-    % Update description string
-    str_mask = strcat(str_mask,'c');
 
 end
 
@@ -325,8 +341,6 @@ if is_mask_erode == 1
 
 end
 
-
-
 % Save the mask
 if save_mask == 1
     inf_mask = inf_mag;
@@ -336,12 +350,6 @@ if save_mask == 1
     inf_mask.BitsPerPixel = 16;
     niftiwrite( int16(arr_mask), strcat(dir_qsm,scanname,'_desc-',str_mask,'_mask'),...
                 inf_mask, 'Compressed',true);
-end
-
-% Load the VS mask
-if is_mask_vs == 1
-    arr_mask = double(niftiread(strcat(dir_qsm,scanname,'_desc-nfv_mask')));
-    str_mask = 'nfv';
 end
 
 
@@ -595,76 +603,20 @@ switch lower(method_dipole)
         % Rescale the result from RADIANS into PPM 
         arr_susc = struct_fansi.x.*arr_mask./Params.rad2ppm;
 
-    case {'medi'}
-
-        % NOT SURE ABOUT THE UNITS
-
-        % MEDI parameters
-        temp_file_MEDI = 'tmp_RDF.mat';
         
-        % Everything has to be named exactly right
-        iFreq = arr_field.*Params.PhaScale;      % Unwrapped phase, in radians
-        RDF = arr_fieldloc.*Params.PhaScale;        % Fieldmap, in radians
-        N_std = arr_noise;      % Noise standard deviation
-        iMag = max(arr_mag,[],4);       % Magnitude image 
-        Mask = arr_mask;       % Mask of ROI
-        matrix_size = Params.MatrixSize;
-        voxel_size = Params.Resolution;
-        delta_TE = Params.dTE;
-        CF = Params.CF;
-        B0_dir = Params.Orientation;
-
-
-        % Save a .mat file in the current folder
-        save(temp_file_MEDI,'iFreq','RDF','N_std','iMag','Mask','matrix_size','voxel_size','delta_TE','CF','B0_dir');
-
-        % Run MEDI
-        tic;
-        arr_susc = MEDI_L1_2('filename',temp_file_MEDI,'lambda',1000,'merit',...
-                             'smv',5,'data_weighting',1,'gradient_weighting',1);
-        toc;
-
-        % % This is the MEDI_L1 call from the SEPIA toolbox:
-        % chi = MEDI_L1('filename',tmp_filename,'lambda',lambda,'data_weighting',wData,'gradient_weighting',wGrad,...
-        %       'merit',isMerit,'smv',radius,'zeropad',pad,'lambda_CSF',lam_CSF,'percentage',percentage);
-
-        % Delete the temporary file
-        delete(temp_file_MEDI);
-
-
     case 'qsmnet'
 
         % Chi Sep Tool directory
-        dir_chisep = '/home/cherukara/Documents/Coding/Toolboxes/chi-separation/old/Chi_Sep_Tool';
+        dir_chisep = './chi-separation/old/Chi_Sep_Tool';
 
         % Convert the input fieldmap from RADIANS to HZ
         arr_fieldhz = arr_fieldloc./Params.rad2Hz;
 
-        % For large shapes, we have to split the array into two slabs:
-        n_slabs = 3;
-        width_slab = Params.MatrixSize(3)./n_slabs;
+        % Do QSMnet
+        arr_susc = QSMnet_general(dir_chisep, arr_fieldhz, arr_mask, arr_mask, ...
+                                  Params.Orientation, Params.CF, ...
+                                  Params.Resolution, Params.MatrixSize );
 
-        % Pre-allocate result array
-        arr_susc = zeros(Params.MatrixSize);
-
-        for ss = 1:n_slabs
-
-            i_slab = (ss-1).*width_slab + 1;
-            e_slab = ss.*width_slab;
-
-            % Define a slab and zero-pad
-            slab_fieldhz = padarray(arr_fieldhz(:,:,i_slab:e_slab),[0,0,2]);
-            slab_mask = padarray(arr_mask(:,:,i_slab:e_slab),[0,0,2]);
-
-            % Do QSMNet
-            slab_susc = QSMnet_general(dir_chisep, slab_fieldhz, slab_mask, slab_mask, ...
-                                      Params.Orientation, Params.CF, ...
-                                      Params.Resolution, Params.MatrixSize );
-
-            % Put the slabs together (undoing zero-padding)
-            arr_susc(:,:,i_slab:e_slab) = slab_susc(:,:,3:(end-2));
-
-        end
 
 end
 
