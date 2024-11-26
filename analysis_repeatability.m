@@ -28,31 +28,31 @@ else
 end
 
 % Choose ROIs
-% pickrois = [7,8,3,13:15];   % Neck
-% pickrois = [9:12];            % Brain
-pickrois = [9:12,7,8,3,13:15];  % All HN ROIs
+pickrois = [7,8,3,13:15];   % Neck
+% pickrois = [9:12,8];            % Brain
+% pickrois = [9:12,7,8,3,13:15];  % All HN ROIs
 n_pick = length(pickrois);
 
 % Choose the data sets we want to load
-% meth_names = {'unwrapped-SEGUE_bfr-PDF_susc-iterTik',...
-%               'unwrapped-SEGUE_bfr-PDF_susc-StarQSM',...
-%               'unwrapped-SEGUE_bfr-PDF_susc-FANSI',...
-%               'unwrapped-SEGUE_bfr-PDF_susc-autoNDI',...
-%               'unwrapped-SEGUE_bfr-PDF_susc-QSMnet',...
-%               'unwrapped-SEGUE_bfr-TFI_susc-TFI'};
+meth_names = {'unwrapped-SEGUE_bfr-PDF_susc-iterTik',...
+              'unwrapped-SEGUE_bfr-PDF_susc-StarQSM',...
+              'unwrapped-SEGUE_bfr-PDF_susc-FANSI',...
+              'unwrapped-SEGUE_bfr-PDF_susc-autoNDI',...
+              'unwrapped-SEGUE_bfr-PDF_susc-QSMnet',...
+              'unwrapped-SEGUE_bfr-TFI_susc-TFI'};
 % meth_names = {'unwrapped-SEGUE_mask-nfv_bfr-LBV_susc-iterTik',...
 %               'unwrapped-SEGUE_mask-nfv_bfr-PDF_susc-iterTik',...
 %               'unwrapped-SEGUE_mask-nfv_bfr-VSHARP_susc-iterTik'};
-meth_names = {'unwrapped-SEGUE_mask-ne_bfr-PDF_susc-autoNDI',...
-              'unwrapped-SEGUE_mask-nfe_bfr-PDF_susc-autoNDI'};
+% meth_names = {'unwrapped-SEGUE_mask-ne_bfr-PDF_susc-autoNDI',...
+%               'unwrapped-SEGUE_mask-nfe_bfr-PDF_susc-autoNDI'};
 n_meth = length(meth_names);
 
 n_subs = 10;
 n_reps = 6;
 
 % Nice Method Names
-% names_methnice = {'iterTik','StarQSM','FANSI','NDI','QSMnet','TFI'};
-names_methnice = {'Noise Mask','Filled Noise Mask'};
+names_methnice = {'iterTik','StarQSM','FANSI','NDI','QSMnet','TFI'};
+% names_methnice = {'Noise Mask','Filled Noise Mask'};
 
 
 % Bootstrap number of samples
@@ -63,6 +63,16 @@ is_plotboot = 1;
 
 % ROI degrees of freedom
 roi_dof = [21,38,77,74,77,74,328,358,7490,2074,3222,1357,210,380,300]-1;
+
+% MATLAB default colours
+mat_col = [0.000, 0.447, 0.741;...
+           0.850, 0.325, 0.098;...
+           0.929, 0.694, 0.125;...
+           0.494, 0.184, 0.556;...
+           0.466, 0.674, 0.188;...
+           0.301, 0.745, 0.933;...
+           0.635, 0.078, 0.184];
+mat_col = mat_col(1:n_meth,:);
 
 % For every statistic, we will store the actual value, followed by the lower and
 % upper 95% confidence intervals
@@ -88,7 +98,7 @@ arr_av_full = zeros(n_subs.*n_reps,n_pick,n_meth);
 for mm = 1:n_meth
 
     % Load the Data
-    load(strcat(dir_data,'Repeatability_',meth_names{mm},'_ref_data.mat'));
+    load(strcat(dir_data,'Repeatability_',meth_names{mm},'_data.mat'));
 
     for rr = 1:length(pickrois)
     
@@ -180,18 +190,18 @@ mat_sdlb = [stat_rsd(:,:,2); stat_wsd(:,:,2); stat_bsd(:,:,2)]';
 mat_sdub = [stat_rsd(:,:,3); stat_wsd(:,:,3); stat_bsd(:,:,3)]';
 
 % x-axis positions
-xpos = repmat(-0.25:0.1:0.25,n_pick,1) + repmat((1:n_pick)',1,6);
+xpos = repmat(linspace(-0.35,0.35,n_meth.*3),n_pick,1) + repmat((1:n_pick)',1,n_meth.*3);
 
 % Create figure window
 f9 = figure(11); clf;
-set(f9,'Position',[250,350,(200 + 100.*n_pick),550]);
+set(f9,'Position',[250,350,(200 + 30.*n_pick.*n_meth),550]);
 
 % Fake extra error bar plots which won't be seen but are just used to create
 % extra terms for the legend
 er1 = plot([1,1],[5,5],'LineStyle','None','Marker','x','LineWidth',1.5,'MarkerSize',10);
 hold on; box on;
 er2 = plot([2,2],[5,5],'LineStyle','None','Marker','o','LineWidth',1.5);
-er3 = plot([3,3],[5,5],'diamond','LineStyle','None','Marker','diamond','LineWidth',1.5);
+er3 = plot([3,3],[5,5],'diamond','LineStyle','None','Marker','diamond','LineWidth',2);
 er1.Color = [0, 0, 0];
 er2.Color = [0, 0, 0];
 er3.Color = [0, 0, 0];
@@ -200,35 +210,45 @@ er3.Color = [0, 0, 0];
 er9 = errorbar(xpos,mat_sd,mat_sdlb,mat_sdub,'Marker','x',...
               'LineStyle','none','LineWidth',1.5);
 
+% Styles for the three types of SD
+c_linestyle =  { 'solid', 'dashed', 'dotted' };
+c_marker =     { 'x', 'o', 'diamond' };
+c_markersize = { 10, 6, 6 };
+c_linewidth =  { 1.5, 1.5, 2 };
+
+
 % Manually Colour and Texture the Bars
-er9(1).Color = [0.000, 0.447, 0.741];
-er9(2).Color = [0.850, 0.325, 0.098];
-er9(3).Color = [0.000, 0.447, 0.741];
-er9(4).Color = [0.850, 0.325, 0.098];
-er9(5).Color = [0.000, 0.447, 0.741];
-er9(6).Color = [0.850, 0.325, 0.098];
+for ee = 1:length(er9)
 
-er9(3).Bar.LineStyle = 'dashed';
-er9(4).Bar.LineStyle = 'dashed';
-er9(5).Bar.LineStyle = 'dotted';
-er9(6).Bar.LineStyle = 'dotted';
+    % Set the colour for each method using a complicated modulo operation
+    er9(ee).Color = mat_col(n_meth-mod(-ee,n_meth),:);
 
-er9(1).MarkerSize = 10;
-er9(2).MarkerSize = 10;
-er9(3).Marker = 'o';
-er9(4).Marker = 'o';
-er9(5).Marker = 'diamond';
-er9(6).Marker = 'diamond';
+    % Find index for standard deviation type
+    i_ee = floor((ee-1)/6)+1;
+
+    % Set the marker and linestyle
+    er9(ee).Bar.LineStyle = c_linestyle{i_ee};
+    er9(ee).Bar.LineWidth = c_linewidth{i_ee};
+    er9(ee).Marker = c_marker{i_ee};
+    er9(ee).MarkerSize = c_markersize{i_ee};
+
+end
 
 % Labels
 ylabel('Standard Deviation (ppm)');
 xticks(1:n_pick);
 xticklabels(names_roi(pickrois));
-legend([{'Within-Region SD'},{'Within-Subject SD'},{'Between-Subject SD'},names_methnice],'Location','NorthWest');
+legend(er9,names_methnice,'Location','NorthWest','Box','Off');
+% legend([er1, er2, er3],{'Within-Region SD','Within-Subject SD','Between-Subject SD'},'Location','North');
 legend('boxoff');
 set(gca,'FontSize',16,'FontName','Calibri');
-ylim([0,0.22]);
-xlim([0.25,10.75]);
+ylim([0,0.75]);
+xlim([0.25,n_pick+0.75]);
+
+% Add a second legend
+ah1 = axes('Position',get(gca,'Position'),'Visible','Off');
+legend(ah1,[er1, er2, er3],{'Within-Region SD','Within-Subject SD','Between-Subject SD'},'Location','North','Box','Off');
+set(ah1,'FontSize',16,'FontName','Calibri');
 
 
 %% Plot Standard Deviation

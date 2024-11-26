@@ -11,7 +11,7 @@ function stat_icc = mtc_icc(arr_x)
 % Extract sizes
 [n_subs, n_reps] = size(arr_x);
 
-% Calculate mean across repeats and repmat it
+% Calculate overall mean and repmat it
 arr_mean = repmat(mean(arr_x,'all','omitnan'),[n_subs,n_reps]);
 
 % Calculate mean across repeats and repmat it

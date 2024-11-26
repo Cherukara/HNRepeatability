@@ -19,8 +19,8 @@ else
 end
 
 % Methods we are comparing
-% meth_names = {'Previous','iterTik','StarQSM','FANSI','autoNDI','TFI','QSMnet'};
-meth_names = {'PDF','VSHARP'};
+meth_names = {'iterTik','StarQSM','FANSI','autoNDI','TFI','QSMnet'};
+% meth_names = {'PDF','VSHARP'};
 % meth_names = {'LPU','SEGUE'};
 n_meth = length(meth_names);
 
@@ -36,7 +36,7 @@ n_subs = 10;
 n_reps = 6;
 
 % We might want to rename the methods
-names_methnice = meth_names;
+names_methnice = {'Tik','StarQSM','FANSI','autoNDI','TFI','QSMnet'};
 % names_methnice = {'Noise Mask';'Filled Noise Mask'};
 
 % Do we want to plot horizontal lines indicating statistical significance?
@@ -190,7 +190,7 @@ f1 = figure(2); clf;
 set(f1,'Position',[150,300,(200 + 30.*n_rois.*n_meth),550]);
 
 % Bar Chart
-br1 = bar(stat_av_roi(:,:,1)',1,'FaceColor','Flat');
+br1 = bar(stat_av_roi(:,:,1)',1,'FaceColor','Flat','FaceAlpha',0.5);
 box on; hold on;
 
 % Pre-allocate array of x positions for the ends of the boxes
@@ -242,8 +242,8 @@ if is_sigline == 1
 end
 
 % Legend
-legend(names_methnice,'Location','NorthEast');
-legend('boxoff');
+legend(names_methnice,'Location','NorthEast','Box','Off','NumColumns',2);
+
 
 
 

@@ -1,15 +1,19 @@
-% MTC_METHOD_ANOVA.m
-%
-% Load some ROI-averaged susceptibility data from a number of methods and
-% perform Repeated Measures Analysis of Variation (ANOVA) on it.
+% ANALYSIS_ANOVA.m performs repeated-measurs ANOVA on QSM data.
+%   Created by MT Cherukar, September 2024
 %
 %
 %       Copyright (C) University College London, 2024
 %
-%
-% Created by MT Cherukara, September 2024
+% 
+% Load some ROI-averaged susceptibility data (calculated by ROI_AVERAGES.m) and
+% performs Repeated Measures Analysis of Variation (RANOVA) on it. Displays the
+% results as a nice looking Heatmap, and stores them as a Table (you will need
+% to save this manually to keep it).
 %
 % CHANGELOG:
+%
+% 2024-11-26 (MTC). Original version, with documentation.
+
 
 clearvars;
 close all;
