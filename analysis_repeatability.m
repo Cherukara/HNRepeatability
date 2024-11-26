@@ -1,15 +1,18 @@
-% ANALYSIS_REPEATABILITY.m
-%
-% Load the data from a particular method and calculate its repeatability
-% statistics
+% ANALYSIS_REPEATABILITY.m calculates repeatability statistics of QSM data.
+%   Created by MT Cherukara, September 2024
 %
 %
 %       Copyright (C) University College London, 2024
 %
 %
-% Created by MT Cherukara, September 2024
+% QSM data should be reconstructed using QSM_PIPELINE.m and then ROI-average
+% values extracted using ROI_AVERAGES.m. This script loads .mat files created by
+% ROI_AVERAGES.m for the list of files specified by 'meth_names' and calculates
+% ROI-based repeatability statistics for them.
 %
 % CHANGELOG:
+%
+% 2024-11-26 (MTC). Current version, with documentation.
 
 clearvars;
 close all;

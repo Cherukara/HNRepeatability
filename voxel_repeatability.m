@@ -1,31 +1,30 @@
-% VOXEL_REPEATABILITY.m
-%
-% Voxelwise repeatability analysis. Loop through head and neck repeatability
-% data (in BIDS format) and calculate some voxelwise measures of repeatability,
-% such as RMSE and XSIM.
-%
-% Requires QSM data in the BIDS format that has already been calculated using
-% QSM_PIPELINE.m, and co-registered across repetitions using ALIGN_HN.sh
+% VOXEL_REPEATABILITY.m calculates voxel-wise repeatability metrics.
+%   Created by MT Cherukara, October 2024
 %
 %
 %       Copyright (C) University College London, 2024
 %
 %
-% Created by MT Cherukara, October 2024
+% Takes reconstructed QSM data in a BIDS-compliant format, with specified ROIs,
+% and calculates some voxel-wise measures of repeatability (NRMSE and XSIM).
+% These results are then stored as a .mat file for later analysis. 
+%
+% QSM daa should have been reconstructed using QSM_PIPELINE.m, and then the
+% results co-registered across repetitions using the bash script ALIGN_HN.sh.
+% 
+% Requires COMPUTE_RMSE.m and COMPUTE_XSIM.m from the FANSI-toolbox, which is
+% attached as a submodule.
 %
 % CHANGELOG:
+%
+% 2024-11-26 (MTC). Original version, with documentation.
 
 clearvars;
 close all;
 
-% Add toolboxes to path - replace these with your own path
-addpath(genpath('/home/cherukara/Documents/Coding/Toolboxes/MEDI_toolbox/'));
-addpath(genpath('/home/cherukara/Documents/Coding/Toolboxes/STISuite_V3.0/'));
-
 % Utilities functions contained within this repository
 addpath(fullfile('.','utils'));
 addpath(genpath(fullfile('.','FANSI-toolbox')));
-addpath(genpath(fullfile('.','chi-separation')));
 
 %% Set up Data Set
 

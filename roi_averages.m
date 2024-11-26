@@ -1,10 +1,15 @@
 % ROI_AVERAGES.m loads processed QSM data and stores averages from ROIs
+%   Created by MT Cherukara, May 2024
 %
 %
 %       Copyright (C) University College London, 2024
 %
 %
-% Created by MT Cherukara, May 2024
+% Loads in reconstructed QSM data from a BIDS-compliant directory, and some
+% appropriately registered ROIs, and calculates the average (mean)
+% susceptibility values in each ROI, for each reconstructed QSM. These results
+% are then saved out into a .mat file for later analysis.
+
 
 clearvars;
 close all;

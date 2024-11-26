@@ -8,7 +8,7 @@
 % Requires multi-echo complex data, stored as NIFTIs, in BIDS format, with
 % separate files for each echo and for the magnitude and phase data. Such as:
 %
-%   BIDS_dataset
+%   dataset
 %   └── rawdata 
 %       ├── sub-01
 %       │   ├── ses-01
@@ -50,6 +50,9 @@
 %   MEDI toolbox (requires a path to your local version)
 %   STI Suite (requires a path to your local version)
 %       other functions contained in the 'utils' folder
+%
+% Please properly credit the authors of whichever options you use. Details
+% should be found in the documentation of those files.
 %
 %
 % CHANGELOG:
