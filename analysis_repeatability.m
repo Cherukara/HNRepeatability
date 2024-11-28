@@ -51,7 +51,7 @@ n_subs = 10;
 n_reps = 6;
 
 % Nice Method Names
-names_methnice = {'iterTik','StarQSM','FANSI','NDI','QSMnet','TFI'};
+names_methnice = {'Tik','StarQSM','FANSI','autoNDI','QSMnet','TFI'};
 % names_methnice = {'Noise Mask','Filled Noise Mask'};
 
 
@@ -362,14 +362,14 @@ set(gca,'FontSize',16,'FontName','Calibri');
 
 % Create Figure Window
 f13 = figure(13); clf;
-set(f13,'Position',[200,100,(300 + 35.*n_meth.*n_pick),550]);
+set(f13,'Position',[200,100,(300 + 25.*n_meth.*n_pick),550]);
 
 % Bar Chart
-b13 = bar(stat_ic(:,:,1)',1,'FaceColor','Flat','FaceAlpha',1);
+b13 = bar(stat_ic(:,:,1)',1,'FaceColor','Flat','FaceAlpha',0.5);
 box on; hold on;
 
 % Lines
-xv = [0.45,n_pick+0.55];
+xv = [0.45,n_pick+1.55];
 plot(xv,[0.75,0.75],'k:','LineWidth',1.5);
 plot(xv,[0.9,0.9],'k--','LineWidth',1.25);
 
@@ -401,8 +401,7 @@ xlim([0.5,n_pick+0.5])
 xlim([0.5,n_pick+0.5])
 xticks(1:n_pick);
 xticklabels(names_roi(pickrois));
-legend(names_methnice,'Location','SouthEast');
-% legend('boxoff');
+legend(names_methnice,'Location','SouthEast','NumColumns',2);
 set(gca,'FontSize',16,'FontName','Calibri');
 
 
