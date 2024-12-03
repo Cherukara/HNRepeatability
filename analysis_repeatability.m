@@ -28,9 +28,9 @@ else
 end
 
 % Choose ROIs
-pickrois = [7,8,3,13:15];   % Neck
+% pickrois = [7,8,3,13:15];   % Neck
 % pickrois = [9:12,8];            % Brain
-% pickrois = [9:12,7,8,3,13:15];  % All HN ROIs
+pickrois = [9:12,7,8,3,13:15];  % All HN ROIs
 n_pick = length(pickrois);
 
 % Choose the data sets we want to load
@@ -132,13 +132,13 @@ for mm = 1:n_meth
         % Calculate overall bias-corrected standard deviation
         stat_osd(mm,rr) = std(arr_data,[],[1,2],'omitnan').*n_reps./(n_reps-1);
    
-        % Calculate Repeatability Coefficient (and Bootstrap)
-        stat_rc(mm,rr,1) = mtc_repcoef(arr_data);
-        stat_rc(mm,rr,2:3) = bootci(n_boot,@(x)[mtc_repcoef(x)],arr_data);
+        % % Calculate Repeatability Coefficient (and Bootstrap)
+        % stat_rc(mm,rr,1) = mtc_repcoef(arr_data);
+        % stat_rc(mm,rr,2:3) = bootci(n_boot,@(x)[mtc_repcoef(x)],arr_data);
     
-        % Calculate coefficient of variation
-        stat_cv(mm,rr,1) = mtc_cofv(arr_data);
-        stat_cv(mm,rr,2:3) = bootci(n_boot,@(x)[mtc_cofv(x)],arr_data);
+        % % Calculate coefficient of variation
+        % stat_cv(mm,rr,1) = mtc_cofv(arr_data);
+        % stat_cv(mm,rr,2:3) = bootci(n_boot,@(x)[mtc_cofv(x)],arr_data);
     
         % Calculate ICC
         stat_ic(mm,rr,1) = mtc_icc(arr_data);
@@ -290,6 +290,56 @@ legend('boxoff');
 set(gca,'FontSize',16,'FontName','Calibri');
 
 
+
+%% Plot ICC
+
+% Create Figure Window
+f13 = figure(13); clf;
+set(f13,'Position',[200,100,(300 + 25.*n_meth.*n_pick),550]);
+
+% Bar Chart
+b13 = bar(stat_ic(:,:,1)',1,'FaceColor','Flat','FaceAlpha',0.5);
+box on; hold on;
+
+% Lines
+xv = [0.45,n_pick+1.55];
+plot(xv,[0.75,0.75],'k:','LineWidth',1.5);
+plot(xv,[0.9,0.9],'k--','LineWidth',1.25);
+
+% Plot error bars showing Bootstrap results
+if is_plotboot == 1
+
+    % Pre-allocate array of x positions for the ends of the boxes
+    xpos = zeros(n_pick,n_meth);
+
+    % Loop through methods and fill it in
+    for mm = 1:n_meth
+        xpos(:,mm) = b13(mm).XEndPoints;
+    end
+
+    % Pull out centre points and ends of the error bars
+    eb_mid = stat_ic(:,:,1)';
+    eb_bot = eb_mid - stat_ic(:,:,2)';
+    eb_top = stat_ic(:,:,3)' - eb_mid;
+
+    % Plot the error bars
+    er11 = errorbar(xpos(:),eb_mid(:),eb_bot(:),eb_top(:),...
+                    'k','LineStyle','none','LineWidth',1);
+end
+
+% Labels
+ylabel('Intra-class Correlation Coefficient');
+ylim([0,1])
+xlim([0.5,n_pick+0.5])
+xlim([0.5,n_pick+0.5])
+xticks(1:n_pick);
+xticklabels(names_roi(pickrois));
+legend(names_methnice,'Location','SouthEast','NumColumns',2);
+set(gca,'FontSize',16,'FontName','Calibri');
+
+
+
+
 %% Plot Repeatability Coefficient
 
 % % Create Figure Window
@@ -356,52 +406,3 @@ set(gca,'FontSize',16,'FontName','Calibri');
 % legend(names_methnice,'Location','NorthWest');
 % % legend('boxoff');
 % set(gca,'FontSize',16,'FontName','Calibri');
-
-
-%% Plot ICC
-
-% Create Figure Window
-f13 = figure(13); clf;
-set(f13,'Position',[200,100,(300 + 25.*n_meth.*n_pick),550]);
-
-% Bar Chart
-b13 = bar(stat_ic(:,:,1)',1,'FaceColor','Flat','FaceAlpha',0.5);
-box on; hold on;
-
-% Lines
-xv = [0.45,n_pick+1.55];
-plot(xv,[0.75,0.75],'k:','LineWidth',1.5);
-plot(xv,[0.9,0.9],'k--','LineWidth',1.25);
-
-% Plot error bars showing Bootstrap results
-if is_plotboot == 1
-
-    % Pre-allocate array of x positions for the ends of the boxes
-    xpos = zeros(n_pick,n_meth);
-
-    % Loop through methods and fill it in
-    for mm = 1:n_meth
-        xpos(:,mm) = b13(mm).XEndPoints;
-    end
-
-    % Pull out centre points and ends of the error bars
-    eb_mid = stat_ic(:,:,1)';
-    eb_bot = eb_mid - stat_ic(:,:,2)';
-    eb_top = stat_ic(:,:,3)' - eb_mid;
-
-    % Plot the error bars
-    er11 = errorbar(xpos(:),eb_mid(:),eb_bot(:),eb_top(:),...
-                    'k','LineStyle','none','LineWidth',1);
-end
-
-% Labels
-ylabel('Intra-class Correlation Coefficient');
-ylim([0,1])
-xlim([0.5,n_pick+0.5])
-xlim([0.5,n_pick+0.5])
-xticks(1:n_pick);
-xticklabels(names_roi(pickrois));
-legend(names_methnice,'Location','SouthEast','NumColumns',2);
-set(gca,'FontSize',16,'FontName','Calibri');
-
-
