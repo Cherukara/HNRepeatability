@@ -29,8 +29,7 @@ end
 
 % Choose ROIs
 % pickrois = [7,8,3,13:15];   % Neck
-% pickrois = [9:12,8];            % Brain
-pickrois = [9:12,7,8,3,13:15];  % All HN ROIs
+pickrois = [9:12,8];            % Brain (plus submandibular gland)
 n_pick = length(pickrois);
 
 % Choose the data sets we want to load
@@ -51,9 +50,8 @@ n_subs = 10;
 n_reps = 6;
 
 % Nice Method Names
-names_methnice = {'Tik','StarQSM','FANSI','autoNDI','QSMnet','TFI'};
+names_methnice = {'iterTik','StarQSM','FANSI','autoNDI','QSMnet','TFI'};
 % names_methnice = {'Noise Mask','Filled Noise Mask'};
-
 
 % Bootstrap number of samples
 n_boot = 1000;
@@ -155,31 +153,31 @@ end % for mm = 1:n_meth
 
 %% Box Plot of Actual Susceptibility Values
 
-% % Make "grouping" variables
-% data_group_rois = repmat(1:n_pick,[n_subs.*n_reps,1,n_meth]);
-% data_group_meth = shiftdim(repmat((1:n_meth)',[1,n_subs.*n_reps,n_pick]),1);
-% 
-% % Create figure window
-% f8 = figure(8); clf;
-% set(f8,'Position',[250,300,(200 + 20.*n_meth.*n_pick),550]);
-% 
-% % Box chart
-% bx8 = boxchart(1.25.*data_group_rois(:),arr_av_full(:),'GroupByColor',data_group_meth(:),...
-%                'BoxWidth',0.8);
-% 
-% % Straight line at 0
-% hold on;
-% plot([0.5,(1.25.*n_pick)+0.75],[0,0],'k:','LineWidth',1.5);
-% 
-% % Labels and decoration
-% box on;
-% xticks(1.25.*(1:n_pick));
-% xticklabels(names_roi(pickrois));
-% xlim([0.5,(1.25.*n_pick)+0.75]);
-% legend(names_methnice,'Location','NorthWest');
-% legend('boxoff');
-% ylabel('Susceptibility (ppm)');
-% set(gca,'FontSize',16,'FontName','Calibri');
+% Make "grouping" variables
+data_group_rois = repmat(1:n_pick,[n_subs.*n_reps,1,n_meth]);
+data_group_meth = shiftdim(repmat((1:n_meth)',[1,n_subs.*n_reps,n_pick]),1);
+
+% Create figure window
+f8 = figure(8); clf;
+set(f8,'Position',[250,300,(200 + 20.*n_meth.*n_pick),550]);
+
+% Box chart
+bx8 = boxchart(1.25.*data_group_rois(:),arr_av_full(:),'GroupByColor',data_group_meth(:),...
+               'BoxWidth',0.8);
+
+% Straight line at 0
+hold on;
+plot([0.5,(1.25.*n_pick)+0.75],[0,0],'k:','LineWidth',1.5);
+
+% Labels and decoration
+box on;
+xticks(1.25.*(1:n_pick));
+xticklabels(names_roi(pickrois));
+xlim([0.5,(1.25.*n_pick)+0.75]);
+legend(names_methnice,'Location','NorthWest');
+legend('boxoff');
+ylabel('Susceptibility (ppm)');
+set(gca,'FontSize',16,'FontName','Calibri');
 
 
 %% Compare Standard Deviations 

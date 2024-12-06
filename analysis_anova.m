@@ -23,10 +23,16 @@ close all;
 
 %% Choose the Data
 
+% Data directory
+if isunix == 1
+    dir_data = '/home/cherukara/Documents/Coding/MTC_QSM/Analysis/HNRepeatability_Data/';
+else
+    dir_data = '..\MTC_QSM\Analysis\HNRepeatability_Data\';
+end
+
 % Choose ROIs
 % pickrois = [3,7,8,13:15];   % Neck
-% pickrois = 9:12;            % Brain
-pickrois = [9:12,7,8,3,13:15];  % All HN ROIs
+pickrois = 9:12;            % Brain
 n_pick = length(pickrois);
 
 % Choose the data sets we want to load
@@ -39,9 +45,7 @@ meth_names = {'unwrapped-SEGUE_bfr-PDF_susc-iterTik',...
 n_meth = length(meth_names);
 
 % Nice Method Names
-names_methnice = {'Tik','StarQSM','FANSI','NDI','QSMnet','TFI'};
-% names_methnice = {'PDF','LBV','V-SHARP','iHARP'};
-
+names_methnice = {'iterTik','StarQSM','FANSI','autoNDI','QSMnet','TFI'};
 
 % Lengths
 n_subs = 10;
@@ -59,7 +63,7 @@ for mm = 1:n_meth
 
     % Load in the data
     %       ARR_ROI_AV has dimensions SUBS * REPEATS * ROIS
-    load(strcat('Analysis_Data/Repeatability_',meth_names{mm},'_data.mat'));
+    load(strcat(dir_data,'Repeatability_',meth_names{mm},'_data.mat'));
 
     % Pick out the data we want and stick it in a big array
     arr_data_all(:,:,:,mm) = arr_roi_av(:,:,pickrois);
@@ -280,7 +284,11 @@ for rr = 1:n_pick
     h00.MissingDataLabel = '';
     h00.ColorLimits = [0,200];
     h00.Title = names_roi(pickrois(rr));
-    set(gca,'FontSize',14);
+    set(gca,'FontSize',16,'FontName','Calibri');
+    set(gca,'ColorbarVisible','Off');
+
+    % Save Figure
+    exportgraphics(f00,sprintf('Heatmap_RANOVA_%d_%s.tif',rr,names_roi{pickrois(rr)}));
 
 
 end % for rr = 1:n_pick

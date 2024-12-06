@@ -25,7 +25,7 @@ meth_names = {'iterTik','StarQSM','FANSI','autoNDI','TFI','QSMnet'};
 n_meth = length(meth_names);
 
 % Metric (choose 'XSIM' or 'NRMSE')
-name_metric = 'NRMSE';
+name_metric = 'XSIM';
 
 % Long ROI names
 names_roi = {'Thalamus','Caudate Nucleus','Putamen','Globus Pallidus'};
@@ -36,7 +36,7 @@ n_subs = 10;
 n_reps = 6;
 
 % We might want to rename the methods
-names_methnice = {'Tik','StarQSM','FANSI','autoNDI','TFI','QSMnet'};
+names_methnice = {'iterTik','StarQSM','FANSI','autoNDI','TFI','QSMnet'};
 % names_methnice = {'Noise Mask';'Filled Noise Mask'};
 
 % Do we want to plot horizontal lines indicating statistical significance?
