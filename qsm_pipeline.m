@@ -58,6 +58,9 @@
 % CHANGELOG:
 %
 % 2024-11-26 (MTC). Original version, with documentation.
+%
+% 2024-12-09 (MTC). Added functionality to parse BIDS .json sidecars to extract
+%       B0, CF, and echo times
 
 clearvars;
 
@@ -76,18 +79,10 @@ addpath(genpath(fullfile('.','chi-separation')));
 % Data directory
 dir_data = '/media/cherukara/DATA/HN_Repeatability_BIDS/';      % HN Repeatability Study
 
-
 % Key Parameters (change these by hand if necessary)
 Params.Orientation = [0, 0, 1];
-Params.Vsize = 22;      % V-SHARP kernel size
-Params.Alpha = 0.06;        % IterTik regularization parameter
-
-% Hard-coded parameters (eventually, these should be read from a JSON file in
-% the BIDS directory)
-Params.B0 = 3;
-Params.CF = 123.138;
 Params.NEchoes = 4;
-Params.TEs = (1:Params.NEchoes).*4.61e-3;
+
 
 
 %% Select Processing Options
@@ -188,6 +183,13 @@ for ee = 1:Params.NEchoes
         arr_mag(:,:,:,ee) = double(niftiread(strcat(dir_raw,scanname,'_part-mag_echo-',num2str(ee),'_GRE')));
         arr_pha(:,:,:,ee) = double(niftiread(strcat(dir_raw,scanname,'_part-phase_echo-',num2str(ee),'_GRE')));
     end
+
+    % Read in JSON sidecar data
+    str_json = fileread(strcat(dir_raw,scanname,'_part-mag_echo-',num2str(ee),'_GRE.json'));
+    dat_json = jsondecode(str_json);
+    Params.B0 = dat_json.MagneticFieldStrength;
+    Params.CF = dat_json.ImagingFrequency;
+    Params.TEs(ee) = dat_json.EchoTime;
 
 end
 
@@ -439,7 +441,7 @@ switch lower(method_bgfr)
         % Perform V-SHARP (using STI Suite)
         [arr_fieldloc, arr_mask] = V_SHARP(arr_field, arr_mask,...
                                    'voxelsize',Params.Resolution,...
-                                   'smvsize',Params.Vsize);
+                                   'smvsize',22);
 
 
         % Save a newly eroded V-SHARP mask
@@ -534,6 +536,7 @@ switch lower(method_dipole)
 
         % Iterative Tikhonov (using Anita Karsa's code)
         Params.Threshold = 6e-2;
+        Params.Alpha = 0.06;
         arr_susc = ak_Tikhonov_iter(arr_fieldloc.*arr_mask, arr_noise.*arr_mask, Params);
 
     case 'tfi'
