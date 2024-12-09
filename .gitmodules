@@ -1,0 +1,6 @@
+[submodule "FANSI-toolbox"]
+	path = FANSI-toolbox
+	url = https://gitlab.com/cmilovic/FANSI-toolbox
+[submodule "chi-separation"]
+	path = chi-separation
+	url = https://github.com/SNU-LIST/chi-separation

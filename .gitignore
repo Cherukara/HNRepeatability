@@ -1,3 +1,7 @@
 sample_data
 *.asv
 .DS_Store
+*.tif
+*.svg
+*.tiff
+*.png
