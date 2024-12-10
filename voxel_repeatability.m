@@ -32,7 +32,8 @@ addpath(genpath(fullfile('.','FANSI-toolbox')));
 dir_data = '/media/cherukara/DATA/HN_Repeatability_BIDS/';      % HN Repeatability Study
 
 % Output data directory
-dir_save = '/home/cherukara/Documents/Coding/MTC_QSM/Analysis/HNRepeatability_Data/';
+dir_save = './HNRepeatability_Data/';
+
 
 % Subject numbers
 subs = 1:10;

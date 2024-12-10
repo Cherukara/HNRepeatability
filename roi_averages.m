@@ -20,7 +20,8 @@ close all;
 dir_data = '/media/cherukara/DATA/HN_Repeatability_BIDS/';
 
 % Output data directory
-dir_save = '/home/cherukara/Documents/Coding/MTC_QSM/Analysis/HNRepeatability_Data/';
+dir_save = './HNRepeatability_Data/';
+
 
 % Subject numbers
 subs = 1:10;
