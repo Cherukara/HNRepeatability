@@ -9,7 +9,7 @@ MATLAB code accompanying the paper
 ## Dependencies
 
 - STI-Suite 3.0 [Berkeley](https://people.eecs.berkeley.edu/~chunlei.liu/software.html)  
-- MEDI-Toolbox (updated Jan 15, 2020) [Cornell](http://pre.weill.cornell.edu/mri/pages/qsm.html)  
+- MEDI-Toolbox [Cornell](http://pre.weill.cornell.edu/mri/pages/qsm.html)  
 - FANSI-Toolbox [CMilovic](https://gitlab.com/cmilovic/FANSI-toolbox)  
 - chi-separation toolbox [SNU-LIST](https://github.com/SNU-LIST/chi-separation)
 
@@ -48,3 +48,7 @@ For ROI-based repeatability metrics (standard deviations, ICC, etc.), run **roi_
 
 Use **analysis_repeatability.m** and **analysis_anova.m** to calculate repeatability metrics on the resulting data. These scripts can reproduce Figures 4-8 in the paper.
 
+## Head and Neck QSM Repeatability Data
+
+This code was designed to be used with the Head and Neck QSM Repeatability Data set, which is available at
+- Cherukara M, Shmueli K. Head and Neck QSM Repeatability Data. *University College London*: Dataset. 2024. [doi.org/10.5522/04/27993215](https://doi.org/10.5522/04/27993215.v1)
