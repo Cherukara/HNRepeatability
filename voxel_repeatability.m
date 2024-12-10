@@ -34,6 +34,7 @@ dir_data = '/media/cherukara/DATA/HN_Repeatability_BIDS/';      % HN Repeatabili
 % Output data directory
 dir_save = './HNRepeatability_Data/';
 
+
 % Subject numbers
 subs = 1:10;
 
