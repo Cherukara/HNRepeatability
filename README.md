@@ -51,4 +51,4 @@ Use **analysis_repeatability.m** and **analysis_anova.m** to calculate repeatabi
 ## Head and Neck QSM Repeatability Data
 
 This code was designed to be used with the Head and Neck QSM Repeatability Data set, which is available at
-- Cherukara M, Shmueli K. Head and Neck QSM Repeatability Data. *University College London*: Dataset. 2024. [doi.org/10.5522/04/27993215](https://doi.org/10.5522/04/27993215.v1)
+- Cherukara M, Shmueli K. Head and Neck QSM Repeatability Data. *University College London*: Dataset. 2024. [doi.org/10.5522/04/27993215](https://doi.org/10.5522/04/27993215)
