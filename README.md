@@ -3,7 +3,7 @@
 Copyright Matthew Cherukara, 9 December 2024. See LICENSE.
 
 MATLAB code accompanying the paper
-- Cherukara MT, Shmueli K. Comparing repeatability metrics for quantitative susceptibility mapping in the head and neck. *UNDER REVIEW* 2024.
+- Cherukara MT, Shmueli K. Comparing repeatability metrics for quantitative susceptibility mapping in the head and neck. *Magn. Reson. Mater. Phy.* 2025 [doi.org/10.1007/s10334-025-01229-3](https://doi.org/10.1007/s10334-025-01229-3)
 
 
 ## Dependencies
@@ -51,4 +51,4 @@ Use **analysis_repeatability.m** and **analysis_anova.m** to calculate repeatabi
 ## Head and Neck QSM Repeatability Data
 
 This code was designed to be used with the Head and Neck QSM Repeatability Data set, which is available at
-- Cherukara M, Shmueli K. Head and Neck QSM Repeatability Data. *University College London*: Dataset. 2024. [doi.org/10.5522/04/27993215](https://doi.org/10.5522/04/27993215)
+- Cherukara MT, Shmueli K. Head and Neck QSM Repeatability Data. *University College London*: Dataset. 2024. [doi.org/10.5522/04/27993215](https://doi.org/10.5522/04/27993215)
